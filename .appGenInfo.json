@@ -1,0 +1,24 @@
+{
+  "generationParameters": {
+    "generationDate": "Tue Sep 09 2025 13:53:33 GMT+0200 (Central Africa Time)",
+    "generatorPlatform": "Visual Studio Code",
+    "serviceType": "SAP System (ABAP On-Premise)",
+    "metadataFilename": "",
+    "serviceUrl": "http://cng-cd1.dccsintra.net:8080/sap/opu/odata/dccs/CNG_ADM_COSTGP_SRV",
+    "appName": "cost_groups",
+    "appTitle": "Cost groups",
+    "appDescription": "An SAP Fiori application.",
+    "appNamespace": "dccs.ui5",
+    "ui5Theme": "sap_fiori_3",
+    "ui5Version": "1.71.33",
+    "enableCodeAssist": false,
+    "enableEslint": false,
+    "enableTypeScript": false,
+    "showMockDataInfo": true,
+    "generatorVersion": "1.18.6",
+    "template": "Basic V2",
+    "generatorName": "SAP Fiori Application Generator",
+    "entityRelatedConfig": [],
+    "launchText": "To launch the generated application, run the following from the generated application root folder:\n\n```\n    npm start\n```"
+  }
+}

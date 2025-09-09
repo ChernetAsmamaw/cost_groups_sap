@@ -1,0 +1,53 @@
+<mvc:View controllerName="dccs.ui5.costgroups.controller.CostGroups" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">
+	<Page id="costGroupsPage" title="{i18n>title}">
+		<content>
+			<!-- Filter Bar -->
+			<HBox id="filterBar" alignItems="End" class="sapUiMediumSmallBottom sapUiSmallMargin" wrap="Wrap" justifyContent="SpaceBetween">
+				<VBox id="filterBarContent" visible="true">
+					<Title id="attentionText" text="Attention: Text search is case sensitive!" class="sapUiSmallMarginBottom sapUiMediumSmallTop" />
+					<HBox id="filterInputs" class="sapUiTinyMarginEnd">
+						<VBox id="costGroupVBox" class="sapUiTinyMarginEnd">
+							<Label id="costGroupLabel" text="{i18n>columnCostGroup}" class="sapUiTinyMarginEnd"/>
+							<Input id="costGroupInput" width="150px" placeholder="{i18n>filterCostGroupPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
+						</VBox>
+						<VBox id="descVBox" class="sapUiTinyMarginEnd">
+							<Label id="descLabel" text="{i18n>columnDescription}" class="sapUiTinyMarginEnd" />
+							<Input id="descInput" width="150px" placeholder="{i18n>filterDescriptionPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
+						</VBox>
+					</HBox>
+				</VBox>
+				<Button id="hideFilterBtn" text="{i18n>hideFilter}" press="onHideFilter" type="Transparent"/>
+			</HBox>
+			<!-- Table -->
+			<Table id="costGroupsTable" items="{/xdccsxcng_cgpov}" growing="true" growingThreshold="100">
+				<headerToolbar>
+					<Toolbar id="tableToolbar" class="sapUiSmallMarginTop">
+						<Title id="entriesCountLabel" text="{= ${i18n>tableHeader} + ' (' + ${viewModel>/totalEntries} + ')' }" />
+					</Toolbar>
+				</headerToolbar>
+				<columns>
+					<Column id="costGroupCol" width="30%" minScreenWidth="Tablet" demandPopin="true">
+						<Text id="costGroupColText" text="{i18n>columnCostGroup}" />
+					</Column>
+					<Column id="descCol" width="40%" minScreenWidth="Desktop" demandPopin="true">
+						<Text id="descColText" text="{i18n>columnDescription}" />
+					</Column>
+					<Column id="lastChangedCol" width="30%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
+						<Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
+					</Column>
+				</columns>
+				<items>
+					<ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
+						<cells>
+							<ObjectIdentifier id="costGroupObjId" text="{costgrptype_text}" />
+							<Text id="descCellText" text="{info_text}" maxLines="2" />
+							<Text id="lastChangedCellText"
+								  text="{ path: 'changed', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
+								  tooltip="{changerdispname}" textAlign="End" />
+						</cells>
+					</ColumnListItem>
+				</items>
+			</Table>
+		</content>
+	</Page>
+</mvc:View>

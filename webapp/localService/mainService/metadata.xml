@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData">
+    <edmx:Reference Uri="http://cng-cd1.dccsintra.net:8080/sap/opu/odata/IWFND/CATALOGSERVICE;v=2/Vocabularies(TechnicalName='%2FIWBEP%2FVOC_COMMON',Version='0001',SAP__Origin='LOCAL')/$value" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+        <edmx:Include Namespace="com.sap.vocabularies.Common.v1" Alias="Common"/>
+    </edmx:Reference>
+    <edmx:DataServices m:DataServiceVersion="2.0">
+        <Schema Namespace="DCCS.CNG_ADM_COSTGP_SRV" xml:lang="en" sap:schema-version="1" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+            <EntityType Name="xdccsxcng_cgcrcType" sap:label="CITAX: Cost group-circumstance mapping" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="cgpcrc_id"/>
+                </Key>
+                <Property Name="cgpcrc_id" Type="Edm.String" Nullable="false" MaxLength="8" sap:display-format="NonNegative" sap:label="ID"/>
+                <Property Name="changed" Type="Edm.DateTimeOffset" Precision="0" sap:label="Last changed"/>
+                <Property Name="changerdispname" Type="Edm.String" MaxLength="100" sap:label="Changer"/>
+                <Property Name="circdesc" Type="Edm.String" MaxLength="60" sap:label="Name"/>
+                <Property Name="name" Type="Edm.String" MaxLength="60" sap:label="Costgroup"/>
+                <Property Name="info_text" Type="Edm.String" MaxLength="1000" sap:label="Info text"/>
+                <Property Name="costgp_sortorder" Type="Edm.Int32" sap:label="Sort order"/>
+                <Property Name="status" Type="Edm.String" MaxLength="3" sap:display-format="UpperCase"/>
+                <Property Name="changer" Type="Edm.String" MaxLength="12" sap:display-format="UpperCase" sap:label="Changer ID"/>
+                <Property Name="circid" Type="Edm.String" MaxLength="2" sap:display-format="NonNegative" sap:label="Circumstance"/>
+                <Property Name="cost_grp_id" Type="Edm.String" MaxLength="8" sap:display-format="NonNegative" sap:label="Cost group"/>
+                <Property Name="cost_grp_type" Type="Edm.String" MaxLength="2" sap:display-format="NonNegative" sap:label="Cost group type"/>
+                <Property Name="valid_from" Type="Edm.DateTime" Precision="0" sap:display-format="Date" sap:label="Valid from"/>
+                <Property Name="valid_to" Type="Edm.DateTime" Precision="0" sap:display-format="Date" sap:label="Valid to"/>
+                <Property Name="is_deactivated" Type="Edm.Boolean" sap:display-format="UpperCase" sap:label="Flag"/>
+                <Property Name="cost_alloc" Type="Edm.String" MaxLength="2" sap:display-format="UpperCase" sap:label="Cost Allocation"/>
+                <Property Name="tax_rate" Type="Edm.Decimal" Precision="7" Scale="2" sap:label="Tax Rate"/>
+            </EntityType>
+            <EntityType Name="xdccsxcng_cgrptType" sap:label="CITAX: Cost group text" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="cost_grp_id"/>
+                    <PropertyRef Name="language"/>
+                </Key>
+                <Property Name="cost_grp_id" Type="Edm.String" Nullable="false" MaxLength="8" sap:display-format="NonNegative" sap:label="Cost group"/>
+                <Property Name="language" Type="Edm.String" Nullable="false" MaxLength="2" sap:label="Language Key"/>
+                <Property Name="name" Type="Edm.String" MaxLength="60" sap:label="Costgroup"/>
+                <Property Name="info_text" Type="Edm.String" MaxLength="1000" sap:label="Info text"/>
+            </EntityType>
+            <EntityType Name="xdccsxcng_cgpovType" sap:label="CITAX: Cost group overview" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="cost_grp_id"/>
+                </Key>
+                <Property Name="cost_grp_id" Type="Edm.String" Nullable="false" MaxLength="8" sap:display-format="NonNegative" sap:label="Cost group"/>
+                <Property Name="cost_grp_type" Type="Edm.String" MaxLength="2" sap:display-format="NonNegative" sap:label="Cost group type"/>
+                <Property Name="costgrptype_text" Type="Edm.String" MaxLength="60" sap:label="Cost group type"/>
+                <Property Name="sort_order" Type="Edm.Int32" sap:label="Sort order"/>
+                <Property Name="created" Type="Edm.DateTimeOffset" Precision="0" sap:label="Created"/>
+                <Property Name="creatordispname" Type="Edm.String" MaxLength="100" sap:label="Creator"/>
+                <Property Name="changed" Type="Edm.DateTimeOffset" Precision="0" sap:label="Last changed"/>
+                <Property Name="changerdispname" Type="Edm.String" MaxLength="100" sap:label="Changer"/>
+                <Property Name="status" Type="Edm.String" MaxLength="3" sap:display-format="UpperCase"/>
+                <Property Name="name" Type="Edm.String" MaxLength="60" sap:label="Cost group"/>
+                <Property Name="info_text" Type="Edm.String" MaxLength="1000" sap:label="Info text"/>
+            </EntityType>
+            <EntityType Name="xdccsxcng_cgprcType" sap:label="CITAX: Cost group to process mapping" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="procid"/>
+                    <PropertyRef Name="cost_grp_id"/>
+                </Key>
+                <Property Name="procid" Type="Edm.String" Nullable="false" MaxLength="14" sap:display-format="NonNegative" sap:label="Process number"/>
+                <Property Name="cost_grp_id" Type="Edm.String" Nullable="false" MaxLength="8" sap:display-format="NonNegative" sap:label="Cost group"/>
+                <Property Name="name" Type="Edm.String" MaxLength="60" sap:label="Costgroup"/>
+                <Property Name="language" Type="Edm.String" MaxLength="2" sap:label="Language Key"/>
+                <Property Name="don_startdat" Type="Edm.DateTime" Precision="0" sap:display-format="Date" sap:label="Start date"/>
+                <Property Name="standard_value" Type="Edm.String" MaxLength="60" sap:label="Cost Allocation"/>
+                <Property Name="cost_grp_type" Type="Edm.String" MaxLength="2" sap:display-format="NonNegative" sap:label="Cost group type"/>
+                <Property Name="taxability_editable" Type="Edm.Boolean" sap:display-format="UpperCase" sap:label="Flag"/>
+                <Property Name="valid_from" Type="Edm.DateTime" Precision="0" sap:display-format="Date" sap:label="Valid from"/>
+                <Property Name="valid_to" Type="Edm.DateTime" Precision="0" sap:display-format="Date" sap:label="Valid to"/>
+                <Property Name="cost_alloc" Type="Edm.String" MaxLength="2" sap:display-format="UpperCase" sap:label="Cost Allocation"/>
+                <Property Name="tax_rate" Type="Edm.Decimal" Precision="7" Scale="2" sap:label="Tax Rate"/>
+                <Property Name="changed" Type="Edm.DateTimeOffset" Precision="0" sap:label="Last changed"/>
+                <Property Name="changerdispname" Type="Edm.String" MaxLength="100" sap:label="Changer"/>
+            </EntityType>
+            <EntityType Name="xdccsxcng_cgrpType" sap:label="CITAX: Cost group" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="cost_grp_id"/>
+                </Key>
+                <Property Name="cost_grp_id" Type="Edm.String" Nullable="false" MaxLength="8" sap:display-format="NonNegative" sap:label="Cost group"/>
+                <Property Name="cost_grp_type" Type="Edm.String" MaxLength="2" sap:display-format="NonNegative" sap:label="Cost group type"/>
+                <Property Name="sort_order" Type="Edm.Int32" sap:label="Sort order"/>
+                <Property Name="created" Type="Edm.DateTimeOffset" Precision="0" sap:label="Created"/>
+                <Property Name="creatordispname" Type="Edm.String" MaxLength="100" sap:label="Creator"/>
+                <Property Name="changed" Type="Edm.DateTimeOffset" Precision="0" sap:label="Last changed"/>
+                <Property Name="changer" Type="Edm.String" MaxLength="12" sap:display-format="UpperCase" sap:label="Changer ID"/>
+                <Property Name="changerdispname" Type="Edm.String" MaxLength="100" sap:label="Changer"/>
+                <NavigationProperty Name="to_cgcrc" Relationship="DCCS.CNG_ADM_COSTGP_SRV.assoc_8B87D46034DFDEF7228A6A88FBDE4507" FromRole="FromRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507" ToRole="ToRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507"/>
+                <NavigationProperty Name="to_text" Relationship="DCCS.CNG_ADM_COSTGP_SRV.assoc_0E05040C689EDA3B91163396E2FA4CB4" FromRole="FromRole_assoc_0E05040C689EDA3B91163396E2FA4CB4" ToRole="ToRole_assoc_0E05040C689EDA3B91163396E2FA4CB4"/>
+            </EntityType>
+            <Association Name="assoc_0E05040C689EDA3B91163396E2FA4CB4" sap:content-version="1">
+                <End Type="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgrpType" Multiplicity="1" Role="FromRole_assoc_0E05040C689EDA3B91163396E2FA4CB4"/>
+                <End Type="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgrptType" Multiplicity="*" Role="ToRole_assoc_0E05040C689EDA3B91163396E2FA4CB4"/>
+            </Association>
+            <Association Name="assoc_8B87D46034DFDEF7228A6A88FBDE4507" sap:content-version="1">
+                <End Type="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgrpType" Multiplicity="1" Role="FromRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507"/>
+                <End Type="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgcrcType" Multiplicity="*" Role="ToRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507"/>
+            </Association>
+            <EntityContainer Name="DCCS_CNG_ADM_COSTGP_SRV_Entities" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+                <EntitySet Name="xdccsxcng_cgcrc" EntityType="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgcrcType" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1"/>
+                <EntitySet Name="xdccsxcng_cgrpt" EntityType="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgrptType" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1"/>
+                <EntitySet Name="xdccsxcng_cgpov" EntityType="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgpovType" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1"/>
+                <EntitySet Name="xdccsxcng_cgprc" EntityType="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgprcType" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1"/>
+                <EntitySet Name="xdccsxcng_cgrp" EntityType="DCCS.CNG_ADM_COSTGP_SRV.xdccsxcng_cgrpType" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1"/>
+                <AssociationSet Name="assoc_0E05040C689EDA3B91163396E2FA4CB4" Association="DCCS.CNG_ADM_COSTGP_SRV.assoc_0E05040C689EDA3B91163396E2FA4CB4" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                    <End EntitySet="xdccsxcng_cgrp" Role="FromRole_assoc_0E05040C689EDA3B91163396E2FA4CB4"/>
+                    <End EntitySet="xdccsxcng_cgrpt" Role="ToRole_assoc_0E05040C689EDA3B91163396E2FA4CB4"/>
+                </AssociationSet>
+                <AssociationSet Name="assoc_8B87D46034DFDEF7228A6A88FBDE4507" Association="DCCS.CNG_ADM_COSTGP_SRV.assoc_8B87D46034DFDEF7228A6A88FBDE4507" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                    <End EntitySet="xdccsxcng_cgrp" Role="FromRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507"/>
+                    <End EntitySet="xdccsxcng_cgcrc" Role="ToRole_assoc_8B87D46034DFDEF7228A6A88FBDE4507"/>
+                </AssociationSet>
+            </EntityContainer>
+            <atom:link rel="self" href="http://cng-cd1.dccsintra.net:8080/sap/opu/odata/dccs/CNG_ADM_COSTGP_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>
+            <atom:link rel="latest-version" href="http://cng-cd1.dccsintra.net:8080/sap/opu/odata/dccs/CNG_ADM_COSTGP_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>
