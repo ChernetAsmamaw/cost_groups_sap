@@ -1,0 +1,28 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Popover id="legendPopover" title="Legend" placement="HorizontalPreferredRight" showHeader="true" contentWidth="14rem">
+        <Table id="legendTable" inset="false" class="sapUiSmallMargin" width="auto">
+            <columns>
+                <Column id="legendStatusCol" width="0.5rem">
+                    <Text id="legendStatusColText" text="Status" />
+                </Column>
+                <Column id="legendDescCol" width="1rem">
+                    <Text id="legendDescColText" text="Description" />
+                </Column>
+            </columns>
+            <items>
+                <ColumnListItem id="legendRowActive">
+                    <core:Icon id="legendIconActive" src="sap-icon://color-fill" color="green" class="sapUiTinyMarginEnd"/>
+                    <Text id="legendTextActive" text="Cost group active"/>
+                </ColumnListItem>
+                <ColumnListItem id="legendRowNotYetActive">
+                    <core:Icon id="legendIconNotYetActive" src="sap-icon://color-fill" color="orange" class="sapUiTinyMarginEnd"/>
+                    <Text id="legendTextNotYetActive" text="Cost group not yet active"/>
+                </ColumnListItem>
+                <ColumnListItem id="legendRowNotActive">
+                    <core:Icon id="legendIconNotActive" src="sap-icon://color-fill" color="red" class="sapUiTinyMarginEnd"/>
+                    <Text id="legendTextNotActive" text="Cost group not active"/>
+                </ColumnListItem>
+            </items>
+        </Table>
+    </Popover>
+</core:FragmentDefinition>

@@ -93,6 +93,13 @@
           "target": [
             "TargetCostGroups"
           ]
+        },
+        {
+          "name": "RouteAddCostGroup",
+          "pattern": "add-cost-group",
+          "target": [
+            "TargetAddCostGroup"
+          ]
         }
       ],
       "targets": {
@@ -102,6 +109,13 @@
           "clearControlAggregation": false,
           "viewId": "CostGroups",
           "viewName": "CostGroups"
+        },
+        "TargetAddCostGroup": {
+          "viewType": "XML",
+          "transition": "slide",
+          "clearControlAggregation": false,
+          "viewId": "AddCostGroup",
+          "viewName": "AddCostGroup"
         }
       }
     },

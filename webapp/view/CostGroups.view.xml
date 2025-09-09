@@ -16,34 +16,42 @@
 						</VBox>
 					</HBox>
 				</VBox>
-				<Button id="hideFilterBtn" text="{i18n>hideFilter}" press="onHideFilter" type="Transparent"/>
+				   <Button id="hideFilterBtn" text="{i18n>hideFilter}" press="onHideFilter" type="Transparent"/>
+				   
 			</HBox>
 			<!-- Table -->
 			<Table id="costGroupsTable" items="{/xdccsxcng_cgpov}" growing="true" growingThreshold="100">
 				<headerToolbar>
 					<Toolbar id="tableToolbar" class="sapUiSmallMarginTop">
+                        <Button id="legendBtn" icon="sap-icon://legend" type="Transparent" tooltip="Legend" press="onLegendPress"/>
 						<Title id="entriesCountLabel" text="{= ${i18n>tableHeader} + ' (' + ${viewModel>/totalEntries} + ')' }" />
+                        <ToolbarSpacer id="_IDGenToolbarSpacer" />
+                        <Button id="addCostGroupBtn" icon="sap-icon://add" press="onAddCostGroup"/>
 					</Toolbar>
 				</headerToolbar>
-				<columns>
-					<Column id="costGroupCol" width="30%" minScreenWidth="Tablet" demandPopin="true">
-						<Text id="costGroupColText" text="{i18n>columnCostGroup}" />
-					</Column>
-					<Column id="descCol" width="40%" minScreenWidth="Desktop" demandPopin="true">
-						<Text id="descColText" text="{i18n>columnDescription}" />
-					</Column>
-					<Column id="lastChangedCol" width="30%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
-						<Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
-					</Column>
-				</columns>
+				   <columns>
+					   <Column id="costGroupCol" width="20%" minScreenWidth="Tablet" demandPopin="true">
+						   <Text id="costGroupColText" text="{i18n>columnCostGroup}" />
+					   </Column>
+					   <Column id="costGroupTypeTextCol" width="20%" minScreenWidth="Tablet" demandPopin="true">
+						   <Text id="costGroupTypeTextColText" text="Cost Group Type Text" />
+					   </Column>
+					   <Column id="descCol" width="40%" minScreenWidth="Desktop" demandPopin="true">
+						   <Text id="descColText" text="{i18n>columnDescription}" />
+					   </Column>
+					   <Column id="lastChangedCol" width="20%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
+						   <Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
+					   </Column>
+				   </columns>
 				<items>
 					<ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
 						<cells>
-							<ObjectIdentifier id="costGroupObjId" text="{costgrptype_text}" />
-							<Text id="descCellText" text="{info_text}" maxLines="2" />
-							<Text id="lastChangedCellText"
-								  text="{ path: 'changed', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
-								  tooltip="{changerdispname}" textAlign="End" />
+					     <ObjectIdentifier id="costGroupObjId" text="{costgrptype_text}" />
+					     <Text id="costGroupTypeTextCell" text="{cost_grp_type_text}" />
+					     <Text id="descCellText" text="{info_text}" maxLines="2" />
+					     <Text id="lastChangedCellText"
+						     text="{ path: 'changed', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
+						     tooltip="{changerdispname}" textAlign="End" />
 						</cells>
 					</ColumnListItem>
 				</items>

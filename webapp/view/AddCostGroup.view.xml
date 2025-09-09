@@ -1,0 +1,18 @@
+<mvc:View
+    controllerName="dccs.ui5.costgroups.controller.AddCostGroup"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m">
+    <Page id="addCostGroupPage" title="Add Cost Group">
+        <content>
+            <VBox id="_IDGenVBox" class="sapUiMediumMargin">
+                <Text id="_IDGenText" text="Add Cost Group Page (empty)" />
+            </VBox>
+        </content>
+        <footer>
+            <Toolbar id="_IDGenToolbar">
+                <ToolbarSpacer id="_IDGenToolbarSpacer2" />
+                <Button id="backBtn" text="Back" press="onNavBack" type="Emphasized" />
+            </Toolbar>
+        </footer>
+    </Page>
+</mvc:View>

@@ -81,7 +81,6 @@ sap.ui.define([
         
 
         // Toggle filter bar visibility
-
         onHideFilter: function () {
             var oFilterBarContent = this.byId("filterBarContent");
             if (!oFilterBarContent) { return; }
@@ -119,6 +118,29 @@ sap.ui.define([
                 oBinding.filter(aFilters.length ? new Filter(aFilters, true) : []);
             }
             this._readDataCount();
-        }
+        },
+
+        onLegendPress: function (oEvent) {
+            var oView = this.getView();
+            if (!this._oLegendPopover) {
+                sap.ui.core.Fragment.load({
+                    name: "dccs.ui5.costgroups.view.LegendPopover",
+                    type: "XML",
+                    controller: this
+                }).then(function(oPopover) {
+                    this._oLegendPopover = oPopover;
+                    oView.addDependent(oPopover);
+                    oPopover.openBy(oEvent.getSource());
+                }.bind(this));
+            } else {
+                this._oLegendPopover.openBy(oEvent.getSource());
+            }
+        },
+
+        onAddCostGroup: function () {
+            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+            oRouter.navTo("RouteAddCostGroup");
+        },
+
     });
 });
