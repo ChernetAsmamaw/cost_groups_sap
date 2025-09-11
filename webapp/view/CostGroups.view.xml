@@ -20,7 +20,7 @@
 				   
 			</HBox>
 			<!-- Table -->
-			<Table id="costGroupsTable" items="{/xdccsxcng_cgpov}" growing="true" growingThreshold="100">
+			<Table id="costGroupsTable" items="{/ZSCOSTGRP_CASet}" growing="true" growingThreshold="100">
 				<headerToolbar>
 					<Toolbar id="tableToolbar" class="sapUiSmallMarginTop">
                         <Button id="legendBtn" icon="sap-icon://legend" type="Transparent" tooltip="Legend" press="onLegendPress"/>
@@ -30,13 +30,13 @@
 					</Toolbar>
 				</headerToolbar>
 				   <columns>
-					   <Column id="costGroupCol" width="20%" minScreenWidth="Tablet" demandPopin="true">
+					   <Column id="costGroupCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
 						   <Text id="costGroupColText" text="{i18n>columnCostGroup}" />
 					   </Column>
-					   <Column id="costGroupTypeTextCol" width="20%" minScreenWidth="Tablet" demandPopin="true">
+					   <Column id="costGroupTypeTextCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
 						   <Text id="costGroupTypeTextColText" text="Cost Group Type Text" />
 					   </Column>
-					   <Column id="descCol" width="40%" minScreenWidth="Desktop" demandPopin="true">
+					   <Column id="descCol" width="30%" minScreenWidth="Desktop" demandPopin="true">
 						   <Text id="descColText" text="{i18n>columnDescription}" />
 					   </Column>
 					   <Column id="lastChangedCol" width="20%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
@@ -46,11 +46,11 @@
 				<items>
 					<ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
 						<cells>
-					     <ObjectIdentifier id="costGroupObjId" text="{costgrptype_text}" />
-					     <Text id="costGroupTypeTextCell" text="{cost_grp_type_text}" />
-					     <Text id="descCellText" text="{info_text}" maxLines="2" />
+					     <ObjectIdentifier id="costGroupObjId" text="{CostGrpName}" />
+					     <Text id="costGroupTypeTextCell" text="{CostGrpTypeText}" />
+					     <Text id="descCellText" text="{CostGrpInfoTxt}" maxLines="2" />
 					     <Text id="lastChangedCellText"
-						     text="{ path: 'changed', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
+						     text="{ path: 'LastChanged', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
 						     tooltip="{changerdispname}" textAlign="End" />
 						</cells>
 					</ColumnListItem>

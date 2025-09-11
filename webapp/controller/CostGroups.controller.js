@@ -23,6 +23,9 @@ sap.ui.define([
             }
             // Ensure filter bar and button are visible and set correct text
             this._setFilterButtonText();
+
+            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+            oRouter.getRoute("RouteCostGroupDetail").attachPatternMatched(this._onObjectMatched, this);
         },
 
         onAfterRendering: function () {
@@ -70,7 +73,10 @@ sap.ui.define([
             var oCtx = oEvent.getSource().getBindingContext();
             if (!oCtx) { return; }
             var oData = oCtx.getObject();
-            MessageToast.show(this._getText("rowSelected", [oData.cost_grp_id || oData.name]));
+            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+            oRouter.navTo("RouteCostGroupDetail", {
+                costGroupId: oData.CostGrpId
+            });
         },
 
         _getText: function (sKey, aArgs) {
@@ -111,13 +117,19 @@ sap.ui.define([
             if (sDescription) {
                 aFilters.push(new Filter("info_text", FilterOperator.Contains, sDescription));
             }
+            
             var oTable = this.byId("costGroupsTable");
             if (!oTable) { return; }
             var oBinding = oTable.getBinding("items");
             if (oBinding) {
-                oBinding.filter(aFilters.length ? new Filter(aFilters, true) : []);
+                // Use AND condition only if there are multiple filters
+                if (aFilters.length > 1) {
+                    oBinding.filter(new Filter(aFilters, true));
+                } else {
+                    oBinding.filter(aFilters);
+                }
             }
-            this._readDataCount();
+            // Don't call _readDataCount() after filtering as it may cause server errors
         },
 
         onLegendPress: function (oEvent) {
@@ -142,5 +154,9 @@ sap.ui.define([
             oRouter.navTo("RouteAddCostGroup");
         },
 
+        _onObjectMatched: function (oEvent) {
+            var costGroupId = oEvent.getParameter("arguments").costGroupId;
+            // Use costGroupId to load data or update the view
+        }
     });
 });

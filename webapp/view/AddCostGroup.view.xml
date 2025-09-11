@@ -1,17 +1,92 @@
 <mvc:View
     controllerName="dccs.ui5.costgroups.controller.AddCostGroup"
     xmlns:mvc="sap.ui.core.mvc"
-    xmlns="sap.m">
-    <Page id="addCostGroupPage" title="Add Cost Group">
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <Page id="addCostGroupPage">
+        <customHeader>
+            <Bar id="headerBar">
+                <contentLeft>
+                    <Button id="backBtn" press="onNavBack" icon="sap-icon://nav-back" />
+                </contentLeft>
+                <contentMiddle>
+                    <Title id="headerTitle" text="{viewModel>/pageTitle}" />
+                </contentMiddle>
+            </Bar>
+        </customHeader>
         <content>
-            <VBox id="_IDGenVBox" class="sapUiMediumMargin">
-                <Text id="_IDGenText" text="Add Cost Group Page (empty)" />
-            </VBox>
+
+    <Toolbar id="_IDGenHeaderToolbar" class="sapUiMediumMarginTop" design="Auto" >
+        <HBox id="_IDGenHBox" class="sapUiSmallMargin sapUiMediumMarginBottom">
+            <Title id="_IDGenTitle" text="{viewModel>/costGrpTypeText}"/>
+        </HBox>
+    </Toolbar>
+
+            <HBox id="_IDGenVBox" class="sapUiMediumMargin">
+                
+                <VBox id="_IDGenVBox2" alignItems="Start">
+
+                    <!-- Language Section -->
+                    <HBox id="_IDGenHBox1" class="sapUiTinyMargin" justifyContent="SpaceBetween">
+
+                        <VBox id="_IDGenVBox1" class="sapUiTinyMargin" alignItems="Start">
+
+                            <!-- German Section -->
+                            <Title id="germanSectionTitle" text="German" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+                            
+                            <HBox id="nameGermanHBox" class="sapUiTinyMargin" alignItems="Center">
+                                <Label id="nameGermanLabel" text="*Designation:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
+                                <Input id="nameGermanInput" value="{viewModel>/nameGerman}" editable="true" width="20rem"/>
+                            </HBox>
+
+                            <HBox id="infoTextGermanHBox" class="sapUiTinyMargin" alignItems="Start">
+                                <Label id="infoTextGermanLabel" text="*Info text:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
+                                <TextArea id="infoTextGermanInput" value="{viewModel>/infoTextGerman}" editable="true" width="20rem" rows="2"/>
+                            </HBox>
+                        </VBox>
+
+                        <VBox id="_IDGenVBox3" class="sapUiMargin" alignItems="Start">
+
+                            <!-- English Section -->
+                            <Title id="englishSectionTitle" text="English" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+                            
+                            <HBox id="nameEnglishHBox" class="sapUiTinyMargin" alignItems="Center">
+                                <Label id="nameEnglishLabel" text="*Designation:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
+                                <Input id="nameEnglishInput" value="{viewModel>/nameEnglish}" editable="true" width="20rem"/>
+                            </HBox>
+
+                            <HBox id="infoTextEnglishHBox" class="sapUiTinyMargin" alignItems="Start">
+                                <Label id="infoTextEnglishLabel" text="*Info text:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
+                                <TextArea id="infoTextEnglishInput" value="{viewModel>/infoTextEnglish}" editable="true" width="20rem" rows="2"/>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Parameters Section -->
+                    <VBox id="_IDGenVBox4" class="sapUiSmallMargin" alignItems="Start">
+                        
+                        <Title id="parametersSectionTitle" text="Parameters" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
+
+                        <HBox id="_IDGenHBox2" class="sapUiTinyMargin" alignItems="Center">
+                            <Label id="sortOrderLabel" text="{i18n>sortOrderLabel}" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
+                            <Input id="sortOrderInput" value="{viewModel>/SortOrder}" editable="true" width="5rem"/>
+                        </HBox>
+
+                        <HBox id="_IDGenHBox3" class="sapUiTinyMargin" alignItems="Center">
+                            <Label id="costGroupTypeLabel" text="{i18n>costGroupTypeLabel}" class="sapUiTinyMarginEnd" width="8rem"/>
+                            <Input id="costGroupTypeInput" value="{viewModel>/costGroupTypeText}" editable="false" width="15rem"/>
+                        </HBox>
+                    </VBox>
+
+                </VBox>
+            </HBox>
         </content>
         <footer>
-            <Toolbar id="_IDGenToolbar">
+            <Toolbar id="_IDGenToolbar"> 
                 <ToolbarSpacer id="_IDGenToolbarSpacer2" />
-                <Button id="backBtn" text="Back" press="onNavBack" type="Emphasized" />
+                <ToolbarSpacer id="_IDGenToolbarSpacer1"/>
+                <Button id="_IDGenButton" text="{i18n>saveButton}" press="onSave"/>
+                <Button id="_IDGenButton1" text="{i18n>cancelButton}" press="onCancel"/>
             </Toolbar>
         </footer>
     </Page>

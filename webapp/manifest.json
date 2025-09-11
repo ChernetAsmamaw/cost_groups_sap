@@ -17,11 +17,18 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/sap/opu/odata/DCCS/CNG_ADM_COSTGP_SRV/",
+        "uri": "/sap/opu/odata/sap/ZCNG_COSTGROUP_CA_SRV/",
         "type": "OData",
         "settings": {
           "annotations": [],
           "localUri": "localService/mainService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      },
+      "cgrtyService": {
+        "uri": "/sap/opu/odata/DCCS/CNG_COMMON_SRV/",
+        "type": "OData",
+        "settings": {
           "odataVersion": "2.0"
         }
       }
@@ -67,6 +74,10 @@
         "dataSource": "mainService",
         "preload": true,
         "settings": {}
+      },
+      "xdccsxcng_cgrty": {
+        "dataSource": "cgrtyService",
+        "settings": {}
       }
     },
     "resources": {
@@ -100,6 +111,11 @@
           "target": [
             "TargetAddCostGroup"
           ]
+        },
+        {
+          "name": "RouteCostGroupDetail",
+          "pattern": "cost-group/{costGroupId}",
+          "target": ["TargetAddCostGroup"]
         }
       ],
       "targets": {
