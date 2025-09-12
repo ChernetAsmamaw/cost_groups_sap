@@ -1,6 +1,11 @@
 sap.ui.define([
-    "sap/ui/core/mvc/Controller"
-], function (Controller) {
+    "sap/ui/core/mvc/Controller",
+    "sap/m/MessageToast",
+    "sap/m/Dialog",
+    "sap/m/Text",
+    "sap/m/Button",
+    "sap/ui/core/library"
+], function (Controller, MessageToast, Dialog, Text, Button, coreLibrary) {
     "use strict";
 
     return Controller.extend("dccs.ui5.costgroups.controller.AddCostGroup", {
@@ -64,7 +69,7 @@ sap.ui.define([
             // Initialize empty form
             oViewModel.setProperty("/sortOrder", "");
             oViewModel.setProperty("/costGroupType", "");
-            oViewModel.setProperty("/costGroupTypeText", "");
+            oViewModel.setProperty("/costGroupTypeText", "New Cost Group"); // Default title for add mode
             oViewModel.setProperty("/nameGerman", "");
             oViewModel.setProperty("/infoTextGerman", "");
             oViewModel.setProperty("/nameEnglish", "");
@@ -106,26 +111,93 @@ sap.ui.define([
             if (isEdit) {
                 // Update existing record
                 var sPath = "/ZSCOSTGRP_CASet(CostGrpId='" + oData.CostGrpId + "',Mandt='" + oData.Mandt + "')";
+                console.log("Update Path:", sPath);
                 oModel.update(sPath, oData, {
-                    success: function () {
-                        sap.m.MessageToast.show("Cost Group updated successfully");
+                    success: function (oResponse) {
+                        // Create success message container
+                        var oSuccessMessage = {
+                            type: "Success",
+                            title: "Update Successful",
+                            message: "Cost Group '" + oData.CostGrpName + "' has been successfully updated.",
+                            timestamp: new Date().toISOString(),
+                            details: {
+                                costGroupId: oData.CostGrpId,
+                                costGroupName: oData.CostGrpName,
+                                operation: "UPDATE"
+                            }
+                        };
+                        
+                        // Call success handler
+                        that.mySuccessHandler(oSuccessMessage);
                         that.onNavBack();
                     },
                     error: function (oError) {
-                        sap.m.MessageToast.show("Error updating cost group");
-                        console.error("Update Error:", oError);
+                        // Create error message container
+                        var oErrorMessage = {
+                            type: "Error",
+                            title: "Update Failed",
+                            message: "Failed to update cost group '" + oData.CostGrpName + "'. Please try again.",
+                            timestamp: new Date().toISOString(),
+                            details: {
+                                costGroupId: oData.CostGrpId,
+                                costGroupName: oData.CostGrpName,
+                                operation: "UPDATE",
+                                errorCode: oError.statusCode || "UNKNOWN",
+                                errorText: oError.statusText || "Unknown error occurred"
+                            },
+                            technicalDetails: oError
+                        };
+                        
+                        // Call error handler
+                        that.myErrorHandler(oErrorMessage);
+                        
+                        // Raise exception for logging
+                        throw new Error("Cost Group update failed: " + oErrorMessage.message);
                     }
                 });
             } else {
                 // Create new record
                 oModel.create("/ZSCOSTGRP_CASet", oData, {
-                    success: function () {
-                        sap.m.MessageToast.show("Cost Group created successfully");
+                    success: function (oResponse) {
+                        // Create success message container
+                        var oSuccessMessage = {
+                            type: "Success",
+                            title: "Creation Successful",
+                            message: "Cost Group '" + oData.CostGrpName + "' has been successfully created.",
+                            timestamp: new Date().toISOString(),
+                            details: {
+                                costGroupId: oData.CostGrpId,
+                                costGroupName: oData.CostGrpName,
+                                operation: "CREATE"
+                            }
+                        };
+                        
+                        // Call success handler
+                        that.mySuccessHandler(oSuccessMessage);
                         that.onNavBack();
                     },
                     error: function (oError) {
-                        sap.m.MessageToast.show("Error creating cost group");
-                        console.error("Create Error:", oError);
+                        // Create error message container
+                        var oErrorMessage = {
+                            type: "Error",
+                            title: "Creation Failed",
+                            message: "Failed to create cost group '" + oData.CostGrpName + "'. Please try again.",
+                            timestamp: new Date().toISOString(),
+                            details: {
+                                costGroupId: oData.CostGrpId,
+                                costGroupName: oData.CostGrpName,
+                                operation: "CREATE",
+                                errorCode: oError.statusCode || "UNKNOWN",
+                                errorText: oError.statusText || "Unknown error occurred"
+                            },
+                            technicalDetails: oError
+                        };
+                        
+                        // Call error handler
+                        that.myErrorHandler(oErrorMessage);
+                        
+                        // Raise exception for logging
+                        throw new Error("Cost Group creation failed: " + oErrorMessage.message);
                     }
                 });
             }
@@ -140,6 +212,123 @@ sap.ui.define([
             // Generate a new ID - you might want to implement proper ID generation
             // based on your business logic
             return Date.now().toString().substr(-8).padStart(8, '0');
+        },
+
+        mySuccessHandler: function (oSuccessMessage) {
+            // Display success message with MessageToast
+            MessageToast.show(oSuccessMessage.message, {
+                duration: 3000,
+                width: "20em",
+                my: "center bottom",
+                at: "center bottom",
+                of: window,
+                offset: "0 -50"
+            });
+            
+            // Log success message container
+            console.log("Success Message Container:", oSuccessMessage);
+        },
+
+        myErrorHandler: function (oErrorMessage) {
+            var that = this;
+            
+            // Create error dialog
+            if (!this._oErrorDialog) {
+                this._oErrorDialog = new Dialog({
+                    type: coreLibrary.MessageType.Error,
+                    title: oErrorMessage.title,
+                    state: "Error",
+                    content: [
+                        new Text({
+                            text: oErrorMessage.message
+                        }),
+                        new Text({
+                            text: "\n\nError Details:",
+                            class: "sapUiMediumMarginTop"
+                        }),
+                        new Text({
+                            text: "Error Code: " + (oErrorMessage.details.errorCode || "N/A")
+                        }),
+                        new Text({
+                            text: "Error Text: " + (oErrorMessage.details.errorText || "N/A")
+                        }),
+                        new Text({
+                            text: "Timestamp: " + oErrorMessage.timestamp
+                        })
+                    ],
+                    beginButton: new Button({
+                        type: "Emphasized",
+                        text: "OK",
+                        press: function () {
+                            that._oErrorDialog.close();
+                        }
+                    }),
+                    endButton: new Button({
+                        text: "Show Technical Details",
+                        press: function () {
+                            that._showTechnicalDetails(oErrorMessage);
+                        }
+                    }),
+                    afterClose: function () {
+                        that._oErrorDialog.destroy();
+                        that._oErrorDialog = null;
+                    }
+                });
+
+                this.getView().addDependent(this._oErrorDialog);
+            } else {
+                // Update existing dialog content
+                this._oErrorDialog.setTitle(oErrorMessage.title);
+                this._oErrorDialog.removeAllContent();
+                this._oErrorDialog.addContent(new Text({
+                    text: oErrorMessage.message
+                }));
+                this._oErrorDialog.addContent(new Text({
+                    text: "\n\nError Details:",
+                    class: "sapUiMediumMarginTop"
+                }));
+                this._oErrorDialog.addContent(new Text({
+                    text: "Error Code: " + (oErrorMessage.details.errorCode || "N/A")
+                }));
+                this._oErrorDialog.addContent(new Text({
+                    text: "Error Text: " + (oErrorMessage.details.errorText || "N/A")
+                }));
+                this._oErrorDialog.addContent(new Text({
+                    text: "Timestamp: " + oErrorMessage.timestamp
+                }));
+            }
+
+            this._oErrorDialog.open();
+            
+            // Log error message container
+            console.error("Error Message Container:", oErrorMessage);
+        },
+
+        _showTechnicalDetails: function (oErrorMessage) {
+            if (!this._oTechnicalDialog) {
+                this._oTechnicalDialog = new Dialog({
+                    title: "Technical Error Details",
+                    content: [
+                        new Text({
+                            text: JSON.stringify(oErrorMessage.technicalDetails, null, 2)
+                        })
+                    ],
+                    beginButton: new Button({
+                        text: "Close",
+                        press: function () {
+                            this._oTechnicalDialog.close();
+                        }.bind(this)
+                    }),
+                    afterClose: function () {
+                        this._oTechnicalDialog.destroy();
+                        this._oTechnicalDialog = null;
+                    }.bind(this)
+                });
+
+                this.getView().addDependent(this._oTechnicalDialog);
+            }
+
+            this._oTechnicalDialog.open();
         },
 
         _getText: function (sKey, aArgs) {

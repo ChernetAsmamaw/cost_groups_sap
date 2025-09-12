@@ -39,11 +39,14 @@
 					   <Column id="descCol" width="30%" minScreenWidth="Desktop" demandPopin="true">
 						   <Text id="descColText" text="{i18n>columnDescription}" />
 					   </Column>
-					   <Column id="lastChangedCol" width="20%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
+					   <Column id="lastChangedCol" width="15%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
 						   <Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
 					   </Column>
+					   <Column id="actionsCol" width="5%" minScreenWidth="Tablet" demandPopin="false" hAlign="Center">
+						   <Text id="actionsColText" text="Actions" />
+					   </Column>
 				   </columns>
-				<items>
+				<items> 
 					<ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
 						<cells>
 					     <ObjectIdentifier id="costGroupObjId" text="{CostGrpName}" />
@@ -52,6 +55,8 @@
 					     <Text id="lastChangedCellText"
 						     text="{ path: 'LastChanged', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
 						     tooltip="{changerdispname}" textAlign="End" />
+					     <Button id="deleteBtn" icon="sap-icon://delete" type="Transparent" 
+					             tooltip="Delete Cost Group" press="onDeleteCostGroup" />
 						</cells>
 					</ColumnListItem>
 				</items>

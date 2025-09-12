@@ -18,7 +18,7 @@
 
     <Toolbar id="_IDGenHeaderToolbar" class="sapUiMediumMarginTop" design="Auto" >
         <HBox id="_IDGenHBox" class="sapUiSmallMargin sapUiMediumMarginBottom">
-            <Title id="_IDGenTitle" text="{viewModel>/costGrpTypeText}"/>
+            <Title id="_IDGenTitle" text="{viewModel>/costGroupTypeText}"/>
         </HBox>
     </Toolbar>
 
@@ -69,7 +69,7 @@
 
                         <HBox id="_IDGenHBox2" class="sapUiTinyMargin" alignItems="Center">
                             <Label id="sortOrderLabel" text="{i18n>sortOrderLabel}" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                            <Input id="sortOrderInput" value="{viewModel>/SortOrder}" editable="true" width="5rem"/>
+                            <Input id="sortOrderInput" value="{viewModel>/sortOrder}" editable="true" width="5rem"/>
                         </HBox>
 
                         <HBox id="_IDGenHBox3" class="sapUiTinyMargin" alignItems="Center">
