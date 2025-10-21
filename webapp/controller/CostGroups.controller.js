@@ -5,363 +5,318 @@ sap.ui.define([
     "sap/ui/model/Filter",
     "sap/ui/model/FilterOperator",
     "sap/m/MessageBox",
-    "sap/m/Dialog",
-    "sap/m/Text",
-    "sap/m/Button",
-    "sap/ui/core/library"
-], function (Controller, JSONModel, MessageToast, Filter, FilterOperator, MessageBox, Dialog, Text, Button, coreLibrary) {
+    "sap/ui/core/Fragment"
+], function (Controller, JSONModel, MessageToast, Filter, FilterOperator, MessageBox, Fragment) {
     "use strict";
 
     return Controller.extend("dccs.ui5.costgroups.controller.CostGroups", {
+
         onInit: function () {
-            var oViewModel = new JSONModel({
+            const oViewModel = new JSONModel({
                 totalEntries: 0,
-                busy: true
+                busy: true, // Start busy until data is received
+                selectedCount: 0,
+                isFilterBarVisible: true
             });
             this.getView().setModel(oViewModel, "viewModel");
-            var oModel = this.getOwnerComponent().getModel();
-            if (oModel) {
-                this.getView().setModel(oModel);
-                this._readDataCount();
-            } else {
-                MessageToast.show(this._getText("errorModelNotFound"));
-            }
-            // Ensure filter bar and button are visible and set correct text
-            this._setFilterButtonText();
 
-            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+            // Load helper data first. The table binding will wait for dataReceived.
+            this._loadCostGroupTypes().catch((err) => {
+                // Display error only if type loading fails
+                MessageBox.error("Failed to load initial data (Cost Group Types). Please try again later.");
+                oViewModel.setProperty("/busy", false); // Unset busy on error
+            });
+
+            const oRouter = this.getOwnerComponent().getRouter();
+            // Note: RouteCostGroupDetail is typically handled by the detail controller, but keeping
+            // it here doesn't hurt if the router is defined this way.
             oRouter.getRoute("RouteCostGroupDetail").attachPatternMatched(this._onObjectMatched, this);
+            
+            this._filterDebounceTimer = null;
+            this._bDataReceivedAttached = false;
         },
 
-        onAfterRendering: function () {
-            var oTable = this.byId("costGroupsTable");
-            if (!oTable) { return; }
-            var oBinding = oTable.getBinding("items");
-            if (oBinding && !oBinding._dataReceivedAttached) {
-                oBinding.attachDataReceived(this.onDataReceived.bind(this));
-                oBinding._dataReceivedAttached = true;
-            }
-        },
+        /**
+         * Use onAfterRendering to safely access view bindings and attach the dataReceived handler.
+         * This ensures the table only stops being busy after data has loaded.
+         */
+        onAfterRendering: function() {
+            if (!this._bDataReceivedAttached) {
+                const oTable = this.byId("costGroupsTable");
+                // Ensure the table is present and has items binding
+                const oBinding = oTable ? oTable.getBinding("items") : null;
 
-        _readDataCount: function () {
-            var oModel = this.getView().getModel();
-            var that = this;
-            if (!oModel) { return; }
-            oModel.read("/ZSCOSTGRP_CASet/$count", {
-                success: function (iCount) {
-                    var i = parseInt(iCount, 10) || 0;
-                    that.getView().getModel("viewModel").setProperty("/totalEntries", i);
-                    that.getView().getModel("viewModel").setProperty("/busy", false);
-                },
-                error: function () {
-                    that.getView().getModel("viewModel").setProperty("/totalEntries", 0);
-                    that.getView().getModel("viewModel").setProperty("/busy", false);
+                if (oBinding) {
+                    oBinding.attachDataReceived(this.onDataReceived, this);
+                    oBinding.resume(); // Ensure data load starts
+                    this._bDataReceivedAttached = true; 
                 }
+            }
+        },
+
+        /**
+         * Loads the Cost Group Type descriptions into a separate JSON model.
+         * FIX: Ensure keys are stored as trimmed strings.
+         * @returns {Promise} A promise that resolves when the data is loaded.
+         */
+        _loadCostGroupTypes: function() {
+            return new Promise((resolve, reject) => {
+                const oCostGroupTypesModel = new JSONModel();
+                this.getView().setModel(oCostGroupTypesModel, "costGroupTypes");
+                const oCgrtyModel = this.getOwnerComponent().getModel("xdccsxcng_cgrty");
+
+                if (!oCgrtyModel) {
+                    MessageToast.show("Cost Group Type service model not found.");
+                    return reject();
+                }
+
+                oCgrtyModel.read("/xdccsxcng_cgrty", {
+                    success: (oData) => {
+                        const oCostGroupTypesMap = oData.results.reduce((acc, oType) => {
+                            // FIX: Convert key to a string and trim spaces to ensure consistency
+                            const sKey = String(oType.cost_grp_type).trim(); 
+                            acc[sKey] = oType.costgrptype_text;
+                            return acc;
+                        }, {});
+                        oCostGroupTypesModel.setData(oCostGroupTypesMap);
+                        resolve();
+                    },
+                    error: (oError) => {
+                        MessageToast.show("Error loading Cost Group Types.");
+                        reject(oError);
+                    }
+                });
             });
         },
 
-        onDataReceived: function (oEvent) {
-            var oTable = this.byId("costGroupsTable");
-            var oBinding = oTable && oTable.getBinding("items");
-            var iLength = 0;
-            if (oBinding && typeof oBinding.getLength === "function") {
-                iLength = oBinding.getLength();
-            } else if (oTable) {
-                iLength = oTable.getItems().length;
-            }
-            var oVM = this.getView().getModel("viewModel");
-            oVM.setProperty("/totalEntries", iLength);
-            oVM.setProperty("/busy", false);
-        },
-
-        onRowPress: function (oEvent) {
-            var oCtx = oEvent.getSource().getBindingContext();
-            if (!oCtx) { return; }
-            var oData = oCtx.getObject();
-            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-            oRouter.navTo("RouteCostGroupDetail", {
-                costGroupId: oData.CostGrpId
-            });
-        },
-
-        _getText: function (sKey, aArgs) {
-            var oBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
-            return oBundle.getText(sKey, aArgs);
-        },
-
-        
-
-        // Toggle filter bar visibility
-        onHideFilter: function () {
-            var oFilterBarContent = this.byId("filterBarContent");
-            if (!oFilterBarContent) { return; }
-            var bVisible = oFilterBarContent.getVisible();
-            oFilterBarContent.setVisible(!bVisible);
-            this._setFilterButtonText();
-        },
-        _setFilterButtonText: function () {
-            var oFilterBarContent = this.byId("filterBarContent");
-            var oButton = this.byId("hideFilterBtn");
-            if (oButton && oFilterBarContent) {
-                var bVisible = oFilterBarContent.getVisible();
-                oButton.setText(bVisible ? this._getText("hideFilter") : this._getText("showFilter"));
-                oButton.setVisible(true);
-            }
-        },
-
-
-        // Apply filters
-        onFilterChange: function () {
-            var aFilters = [];
-            var sCostGroup = this.byId("costGroupInput").getValue();
-            var sDescription = this.byId("descInput").getValue();
-
-            if (sCostGroup) {
-                aFilters.push(new Filter("costgrptype_text", FilterOperator.Contains, sCostGroup));
-            }
-            if (sDescription) {
-                aFilters.push(new Filter("info_text", FilterOperator.Contains, sDescription));
+        /**
+         * Formatter to convert Cost Group Type ID to Text.
+         * FIX: Ensure the input ID is converted to a trimmed string for a reliable lookup.
+         * The framework will re-evaluate this when the 'costGroupTypes' model is loaded.
+         * @param {string} sCostGrpTypeNo The ID of the cost group type (e.g., '01', '02').
+         * @returns {string} The corresponding text or the ID if not found.
+         */
+        formatCostGroupType: function(sCostGrpTypeNo) {
+            if (sCostGrpTypeNo === undefined || sCostGrpTypeNo === null) return "";
+            
+            // Convert input to a string and trim spaces for a reliable lookup key
+            const sKey = String(sCostGrpTypeNo).trim(); 
+            
+            // Check if the 'costGroupTypes' model exists and has data
+            const oCostGroupTypesModel = this.getView().getModel("costGroupTypes");
+            if (!oCostGroupTypesModel) {
+                return sCostGrpTypeNo; // Return ID if model isn't ready
             }
             
-            var oTable = this.byId("costGroupsTable");
-            if (!oTable) { return; }
-            var oBinding = oTable.getBinding("items");
-            if (oBinding) {
-                // Use AND condition only if there are multiple filters
-                if (aFilters.length > 1) {
-                    oBinding.filter(new Filter(aFilters, true));
-                } else {
-                    oBinding.filter(aFilters);
+            const oCostGroupTypes = oCostGroupTypesModel.getData();
+            if (Object.keys(oCostGroupTypes).length === 0) {
+                 return sCostGrpTypeNo; // Return ID if data hasn't loaded yet
+            }
+            
+            // Look up using the consistent string key. If lookup fails, return the original input.
+            return oCostGroupTypes[sKey] || sCostGrpTypeNo; 
+        },
+        
+        /**
+         * Handles the data received event to update the entry count and unset busy state.
+         */
+        onDataReceived: function (oEvent) {
+            const oBinding = oEvent.getSource();
+            // Use total length if available, otherwise fallback to current length.
+            const iLength = oBinding.getLength ? oBinding.getLength() : oBinding.getCurrentContexts().length; 
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/totalEntries", iLength);
+            oViewModel.setProperty("/busy", false); // Data is loaded, stop busy indicator
+        },
+        
+        /**
+         * Fully functional frontend filter with debouncing.
+         */
+        onFilterChange: function () {
+            clearTimeout(this._filterDebounceTimer);
+
+            this._filterDebounceTimer = setTimeout(() => {
+                const sCostGroup = this.byId("costGroupInput").getValue();
+                const sDescription = this.byId("descInput").getValue();
+                const aFilters = [];
+
+                if (sCostGroup) {
+                    aFilters.push(new Filter("CostGrpName", FilterOperator.Contains, sCostGroup));
                 }
+                if (sDescription) {
+                    aFilters.push(new Filter("CostGrpInfoTxt", FilterOperator.Contains, sDescription));
+                }
+                
+                const oTable = this.byId("costGroupsTable");
+                const oBinding = oTable ? oTable.getBinding("items") : null;
+                
+                if(oBinding) {
+                    oBinding.filter(aFilters);
+                    this.getView().getModel("viewModel").setProperty("/busy", true); // Set busy during filter execution
+                } else {
+                    MessageToast.show(this._getText("tableNotReady"));
+                }
+            }, 300); // 300ms delay
+        },
+
+        onSelectionChange: function (oEvent) {
+            const iSelectedCount = this.byId("costGroupsTable").getSelectedItems().length;
+            this.getView().getModel("viewModel").setProperty("/selectedCount", iSelectedCount);
+        },
+
+        onGroupDeletePress: function () {
+            const aSelectedItems = this.byId("costGroupsTable").getSelectedItems();
+            if (aSelectedItems.length === 0) {
+                MessageToast.show(this._getText("noItemsSelected"));
+                return;
             }
-            // Don't call _readDataCount() after filtering as it may cause server errors
-        },
-
-        onLegendPress: function (oEvent) {
-            var oView = this.getView();
-            if (!this._oLegendPopover) {
-                sap.ui.core.Fragment.load({
-                    name: "dccs.ui5.costgroups.view.LegendPopover",
-                    type: "XML",
-                    controller: this
-                }).then(function(oPopover) {
-                    this._oLegendPopover = oPopover;
-                    oView.addDependent(oPopover);
-                    oPopover.openBy(oEvent.getSource());
-                }.bind(this));
-            } else {
-                this._oLegendPopover.openBy(oEvent.getSource());
-            }
-        },
-
-        onAddCostGroup: function () {
-            var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-            oRouter.navTo("RouteAddCostGroup");
-        },
-
-        onDeleteCostGroup: function (oEvent) {
-            var oButton = oEvent.getSource();
-            var oContext = oButton.getBindingContext();
-            var oData = oContext.getObject();
-            var that = this;
 
             MessageBox.confirm(
-                "Are you sure you want to delete the cost group '" + oData.CostGrpName + "'?", 
-                {
-                    title: "Confirm Deletion",
-                    onClose: function (oAction) {
+                this._getText("confirmGroupDeletion", [aSelectedItems.length]), {
+                    title: this._getText("confirmDeletionTitle"),
+                    onClose: (oAction) => {
                         if (oAction === MessageBox.Action.OK) {
-                            that._deleteCostGroup(oData);
+                            this._executeGroupDeletion(aSelectedItems);
                         }
                     }
                 }
             );
         },
 
-        _deleteCostGroup: function (oData) {
-            var oModel = this.getView().getModel();
-            var sPath = "/ZSCOSTGRP_CASet(CostGrpId='" + oData.CostGrpId + "',Mandt='" + oData.Mandt + "')";
-            var that = this;
+        _executeGroupDeletion: function (aSelectedItems) {
+            const oModel = this.getView().getModel();
+            const aPromises = [];
+            this.getView().getModel("viewModel").setProperty("/busy", true);
+
+            aSelectedItems.forEach(oItem => {
+                const sPath = oItem.getBindingContext().getPath();
+                const oPromise = new Promise((resolve, reject) => {
+                    oModel.remove(sPath, {
+                        success: resolve,
+                        error: reject
+                    });
+                });
+                aPromises.push(oPromise);
+            });
+            
+            Promise.allSettled(aPromises).then(results => {
+                const iSuccessCount = results.filter(r => r.status === "fulfilled").length;
+                const iFailedCount = results.length - iSuccessCount;
+                
+                if (iFailedCount === 0) {
+                    MessageToast.show(this._getText("successGroupDelete", [iSuccessCount]));
+                } else {
+                    MessageBox.error(this._getText("errorPartialGroupDelete", [iSuccessCount, results.length]));
+                }
+                this._refreshTableData();
+            });
+        },
+        
+        onDeleteCostGroup: function (oEvent) {
+            // Stop the row navigation event from firing
+            oEvent.stopPropagation(); 
+            
+            const oContext = oEvent.getSource().getBindingContext();
+            const oData = oContext.getObject();
+
+            MessageBox.confirm(
+                this._getText("confirmSingleDeletion", [oData.CostGrpName]), {
+                    title: this._getText("confirmDeletionTitle"),
+                    onClose: (oAction) => {
+                        if (oAction === MessageBox.Action.OK) {
+                            this._deleteCostGroup(oContext.getPath(), oData.CostGrpName);
+                        }
+                    }
+                }
+            );
+        },
+
+        _deleteCostGroup: function (sPath, sName) {
+            const oModel = this.getView().getModel();
+            this.getView().getModel("viewModel").setProperty("/busy", true);
 
             oModel.remove(sPath, {
-                success: function (oResponse) {
-                    // Create success message container
-                    var oSuccessMessage = {
-                        type: "Success",
-                        title: "Deletion Successful",
-                        message: "Cost Group '" + oData.CostGrpName + "' has been successfully deleted.",
-                        timestamp: new Date().toISOString(),
-                        details: {
-                            costGroupId: oData.CostGrpId,
-                            costGroupName: oData.CostGrpName,
-                            operation: "DELETE"
-                        }
-                    };
-                    
-                    // Call success handler
-                    that.mySuccessHandler(oSuccessMessage);
-                    
-                    // Refresh the table data
-                    that._refreshTable();
+                success: () => {
+                    MessageToast.show(this._getText("successSingleDelete", [sName]));
+                    this._refreshTableData();
                 },
-                error: function (oError) {
-                    // Create error message container
-                    var oErrorMessage = {
-                        type: "Error",
-                        title: "Deletion Failed",
-                        message: "Failed to delete cost group '" + oData.CostGrpName + "'. Please try again.",
-                        timestamp: new Date().toISOString(),
-                        details: {
-                            costGroupId: oData.CostGrpId,
-                            costGroupName: oData.CostGrpName,
-                            operation: "DELETE",
-                            errorCode: oError.statusCode || "UNKNOWN",
-                            errorText: oError.statusText || "Unknown error occurred"
-                        },
-                        technicalDetails: oError
-                    };
-                    
-                    // Call error handler
-                    that.myErrorHandler(oErrorMessage);
-                    
-                    // Raise exception for logging
-                    throw new Error("Cost Group deletion failed: " + oErrorMessage.message);
+                error: (oError) => {
+                    this.getView().getModel("viewModel").setProperty("/busy", false);
+                    // No need for manual parsing, OData V2 model handles messages.
+                    MessageBox.error(this._getText("errorSingleDelete", [sName]), {
+                        details: JSON.stringify(oError, null, 2)
+                    });
                 }
             });
         },
 
-        mySuccessHandler: function (oSuccessMessage) {
-            // Display success message with MessageToast
-            MessageToast.show(oSuccessMessage.message, {
-                duration: 3000,
-                width: "20em",
-                my: "center bottom",
-                at: "center bottom",
-                of: window,
-                offset: "0 -50"
+        _refreshTableData: function() {
+            const oTable = this.byId("costGroupsTable");
+            if (oTable && oTable.getBinding("items")) {
+                oTable.getBinding("items").refresh();
+                oTable.removeSelections(true);
+            }
+            this.getView().getModel("viewModel").setProperty("/selectedCount", 0);
+            this.getView().getModel("viewModel").setProperty("/busy", false);
+        },
+
+        _parseError: function (oError) {
+            // OData V2 models push their messages to the message manager automatically.
+            // Keeping this stub for consistency, though it's not needed for message handling.
+        },
+
+        onHideFilter: function () {
+            const oFilterBarContent = this.byId("filterBarContent");
+            const bIsVisible = oFilterBarContent.getVisible();
+            oFilterBarContent.setVisible(!bIsVisible);
+            this.byId("hideFilterBtn").setText(bIsVisible ? this._getText("showFilter") : this._getText("hideFilter"));
+        },
+
+        onRowPress: function (oEvent) {
+            const oContext = oEvent.getSource().getBindingContext();
+            // Guard against navigating if a context is not available
+            if (!oContext) {
+                MessageToast.show("Could not find the selected item context.");
+                return;
+            }
+            const sCostGroupId = oContext.getProperty("CostGrpId");
+            this.getOwnerComponent().getRouter().navTo("RouteCostGroupDetail", {
+                costGroupId: sCostGroupId
             });
-            
-            // Log success message container
-            console.log("Success Message Container:", oSuccessMessage);
         },
 
-        myErrorHandler: function (oErrorMessage) {
-            var that = this;
-            
-            // Create error dialog
-            if (!this._oErrorDialog) {
-                this._oErrorDialog = new Dialog({
-                    type: coreLibrary.MessageType.Error,
-                    title: oErrorMessage.title,
-                    state: "Error",
-                    content: [
-                        new Text({
-                            text: oErrorMessage.message
-                        }),
-                        new Text({
-                            text: "\n\nError Details:",
-                            class: "sapUiMediumMarginTop"
-                        }),
-                        new Text({
-                            text: "Error Code: " + (oErrorMessage.details.errorCode || "N/A")
-                        }),
-                        new Text({
-                            text: "Error Text: " + (oErrorMessage.details.errorText || "N/A")
-                        }),
-                        new Text({
-                            text: "Timestamp: " + oErrorMessage.timestamp
-                        })
-                    ],
-                    beginButton: new Button({
-                        type: "Emphasized",
-                        text: "OK",
-                        press: function () {
-                            that._oErrorDialog.close();
-                        }
-                    }),
-                    endButton: new Button({
-                        text: "Show Technical Details",
-                        press: function () {
-                            that._showTechnicalDetails(oErrorMessage);
-                        }
-                    }),
-                    afterClose: function () {
-                        that._oErrorDialog.destroy();
-                        that._oErrorDialog = null;
-                    }
+        onAddCostGroup: function () {
+            this.getOwnerComponent().getRouter().navTo("RouteAddCostGroup");
+        },
+
+        onLegendPress: function (oEvent) {
+            const oView = this.getView();
+            if (!this._pLegendPopover) {
+                this._pLegendPopover = Fragment.load({
+                    name: "dccs.ui5.costgroups.view.LegendPopover",
+                    controller: this
+                }).then(function (oPopover) {
+                    oView.addDependent(oPopover);
+                    return oPopover;
                 });
-
-                this.getView().addDependent(this._oErrorDialog);
-            } else {
-                // Update existing dialog content
-                this._oErrorDialog.setTitle(oErrorMessage.title);
-                this._oErrorDialog.removeAllContent();
-                this._oErrorDialog.addContent(new Text({
-                    text: oErrorMessage.message
-                }));
-                this._oErrorDialog.addContent(new Text({
-                    text: "\n\nError Details:",
-                    class: "sapUiMediumMarginTop"
-                }));
-                this._oErrorDialog.addContent(new Text({
-                    text: "Error Code: " + (oErrorMessage.details.errorCode || "N/A")
-                }));
-                this._oErrorDialog.addContent(new Text({
-                    text: "Error Text: " + (oErrorMessage.details.errorText || "N/A")
-                }));
-                this._oErrorDialog.addContent(new Text({
-                    text: "Timestamp: " + oErrorMessage.timestamp
-                }));
             }
-
-            this._oErrorDialog.open();
-            
-            // Log error message container
-            console.error("Error Message Container:", oErrorMessage);
+            this._pLegendPopover.then(function (oPopover) {
+                oPopover.openBy(oEvent.getSource());
+            });
+        },
+        
+        _getText: function (sKey, aArgs) {
+            // Check if the i18n model is available before attempting to get the bundle
+            const oI18nModel = this.getOwnerComponent().getModel("i18n");
+            if (!oI18nModel) {
+                return sKey; // Fallback to key if model is missing
+            }
+            return oI18nModel.getResourceBundle().getText(sKey, aArgs);
         },
 
-        _showTechnicalDetails: function (oErrorMessage) {
-            if (!this._oTechnicalDialog) {
-                this._oTechnicalDialog = new Dialog({
-                    title: "Technical Error Details",
-                    content: [
-                        new Text({
-                            text: JSON.stringify(oErrorMessage.technicalDetails, null, 2)
-                        })
-                    ],
-                    beginButton: new Button({
-                        text: "Close",
-                        press: function () {
-                            this._oTechnicalDialog.close();
-                        }.bind(this)
-                    }),
-                    afterClose: function () {
-                        this._oTechnicalDialog.destroy();
-                        this._oTechnicalDialog = null;
-                    }.bind(this)
-                });
-
-                this.getView().addDependent(this._oTechnicalDialog);
-            }
-
-            this._oTechnicalDialog.open();
-        },
-
-        _refreshTable: function () {
-            var oTable = this.byId("costGroupsTable");
-            if (oTable) {
-                var oBinding = oTable.getBinding("items");
-                if (oBinding) {
-                    oBinding.refresh();
-                }
-            }
-            // Update the count
-            this._readDataCount();
-        },
-
-        _onObjectMatched: function (oEvent) {
-            var costGroupId = oEvent.getParameter("arguments").costGroupId;
-            // Use costGroupId to load data or update the view
+        // Stub for router pattern matched event (not strictly needed here but kept from original)
+        _onObjectMatched: function() {
+            // Placeholder: The detail page navigation is handled by onRowPress.
         }
     });
 });

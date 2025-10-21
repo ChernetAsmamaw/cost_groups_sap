@@ -1,7 +1,7 @@
 <mvc:View controllerName="dccs.ui5.costgroups.controller.App"
-    xmlns:html="http://www.w3.org/1999/xhtml"
     xmlns:mvc="sap.ui.core.mvc" displayBlock="true"
     xmlns="sap.m">
-    <App id="app">
-    </App>
+    <Shell id="shell">
+        <App id="app" />
+    </Shell>
 </mvc:View>

@@ -1,93 +1,256 @@
 <mvc:View
     controllerName="dccs.ui5.costgroups.controller.AddCostGroup"
     xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:smartTable="sap.ui.comp.smarttable"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:table="sap.ui.table"
     xmlns="sap.m"
-    xmlns:core="sap.ui.core">
-    <Page id="addCostGroupPage">
-        <customHeader>
-            <Bar id="headerBar">
-                <contentLeft>
-                    <Button id="backBtn" press="onNavBack" icon="sap-icon://nav-back" />
-                </contentLeft>
-                <contentMiddle>
-                    <Title id="headerTitle" text="{viewModel>/pageTitle}" />
-                </contentMiddle>
-            </Bar>
-        </customHeader>
+    displayBlock="true">
+    
+    <Page 
+        id="addCostGroupPage" 
+        title="{viewModel>/pageTitle}" 
+        showNavButton="true" 
+        navButtonPress="onNavBack">
+        
         <content>
-
-    <Toolbar id="_IDGenHeaderToolbar" class="sapUiMediumMarginTop" design="Auto" >
-        <HBox id="_IDGenHBox" class="sapUiSmallMargin sapUiMediumMarginBottom">
-            <Title id="_IDGenTitle" text="{viewModel>/costGroupTypeText}"/>
-        </HBox>
-    </Toolbar>
-
-            <HBox id="_IDGenVBox" class="sapUiMediumMargin">
+            <VBox id="idAddCostgroupVBox" class="sapUiMediumMargin">
                 
-                <VBox id="_IDGenVBox2" alignItems="Start">
-
-                    <!-- Language Section -->
-                    <HBox id="_IDGenHBox1" class="sapUiTinyMargin" justifyContent="SpaceBetween">
-
-                        <VBox id="_IDGenVBox1" class="sapUiTinyMargin" alignItems="Start">
-
-                            <!-- German Section -->
-                            <Title id="germanSectionTitle" text="German" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
-                            
-                            <HBox id="nameGermanHBox" class="sapUiTinyMargin" alignItems="Center">
-                                <Label id="nameGermanLabel" text="*Designation:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                                <Input id="nameGermanInput" value="{viewModel>/nameGerman}" editable="true" width="20rem"/>
-                            </HBox>
-
-                            <HBox id="infoTextGermanHBox" class="sapUiTinyMargin" alignItems="Start">
-                                <Label id="infoTextGermanLabel" text="*Info text:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                                <TextArea id="infoTextGermanInput" value="{viewModel>/infoTextGerman}" editable="true" width="20rem" rows="2"/>
-                            </HBox>
-                        </VBox>
-
-                        <VBox id="_IDGenVBox3" class="sapUiMargin" alignItems="Start">
-
-                            <!-- English Section -->
-                            <Title id="englishSectionTitle" text="English" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
-                            
-                            <HBox id="nameEnglishHBox" class="sapUiTinyMargin" alignItems="Center">
-                                <Label id="nameEnglishLabel" text="*Designation:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                                <Input id="nameEnglishInput" value="{viewModel>/nameEnglish}" editable="true" width="20rem"/>
-                            </HBox>
-
-                            <HBox id="infoTextEnglishHBox" class="sapUiTinyMargin" alignItems="Start">
-                                <Label id="infoTextEnglishLabel" text="*Info text:" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                                <TextArea id="infoTextEnglishInput" value="{viewModel>/infoTextEnglish}" editable="true" width="20rem" rows="2"/>
-                            </HBox>
-                        </VBox>
-                    </HBox>
-
-                    <!-- Parameters Section -->
-                    <VBox id="_IDGenVBox4" class="sapUiSmallMargin" alignItems="Start">
+                <f:Form 
+                    id="idCostGroupForm"
+                    editable="true"
+                    width="100%">
+                    
+                    <f:title>
+                        <core:Title id="idCostGroupDetailsTitle" text="Cost Group Details"/>
+                    </f:title>
+                    
+                    <f:layout>
+                        <f:ResponsiveGridLayout 
+                            id="idResponsiveGridLayout"
+                />
+                    </f:layout>
+                    
+                    <f:formContainers>
+                        <f:FormContainer id="idGermanFormContainer">
+                            <f:title>
+                                <core:Title id="idGermanTitle" text="German"/>
+                            </f:title>
+                            <f:formElements>
+                                <f:FormElement id="idDesignationGermanFormElement">
+                                    <f:label>
+                                        <Label id="idDesignationGermanLabel" text="*Designation:" required="true"/>
+                                    </f:label>
+                                    <f:fields>
+                                        <Input id="nameGermanInput" value="{viewModel>/nameGerman}" required="true" width="300px" />
+                                    </f:fields>
+                                </f:FormElement>
+                                <f:FormElement id="idInfoTextGermanFormElement">
+                                    <f:label>
+                                        <Label id="idInfoTextGermanLabel" text="*Info text:" required="true"/>
+                                    </f:label>
+                                    <f:fields>
+                                        <Input id="infoTextGermanInput" value="{viewModel>/infoTextGerman}" required="true" width="300px" />
+                                    </f:fields>
+                                </f:FormElement>
+                            </f:formElements>
+                        </f:FormContainer>
                         
-                        <Title id="parametersSectionTitle" text="Parameters" level="H4" class="sapUiMediumMarginTop sapUiSmallMarginBottom"/>
-
-                        <HBox id="_IDGenHBox2" class="sapUiTinyMargin" alignItems="Center">
-                            <Label id="sortOrderLabel" text="{i18n>sortOrderLabel}" required="true" class="sapUiTinyMarginEnd" width="8rem"/>
-                            <Input id="sortOrderInput" value="{viewModel>/sortOrder}" editable="true" width="5rem"/>
-                        </HBox>
-
-                        <HBox id="_IDGenHBox3" class="sapUiTinyMargin" alignItems="Center">
-                            <Label id="costGroupTypeLabel" text="{i18n>costGroupTypeLabel}" class="sapUiTinyMarginEnd" width="8rem"/>
-                            <Input id="costGroupTypeInput" value="{viewModel>/costGroupTypeText}" editable="false" width="15rem"/>
-                        </HBox>
-                    </VBox>
-
+                        <f:FormContainer id="idEnglishFormContainer">
+                            <f:title>
+                                <core:Title id="idEnglishTitle" text="English"/>
+                            </f:title>
+                            <f:formElements>
+                                <f:FormElement id="idDesignationEnglishFormElement">
+                                    <f:label>
+                                        <Label id="idDesignationEnglishLabel" text="*Designation:" required="true"/>
+                                    </f:label>
+                                    <f:fields>
+                                        <Input id="nameEnglishInput" value="{viewModel>/nameEnglish}" required="true" width="300px" />
+                                    </f:fields>
+                                </f:FormElement>
+                                <f:FormElement id="idInfoTextEnglishFormElement">
+                                    <f:label>
+                                        <Label id="idInfoTextEnglishLabel" text="*Info text:" required="true"/>
+                                    </f:label>
+                                    <f:fields>
+                                        <Input id="infoTextEnglishInput" value="{viewModel>/infoTextEnglish}" required="true" width="300px" />
+                                    </f:fields>
+                                </f:FormElement>
+                            </f:formElements>
+                        </f:FormContainer>
+                    </f:formContainers>
+                </f:Form>
+                
+                <VBox id="idParametersSectionVBox" class="sapUiMediumMarginTop">
+                    <f:SimpleForm 
+                        id="idParametersSimpleForm"
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanL="3"
+                        labelSpanM="3"
+                        adjustLabelSpan="false"
+                        emptySpanM="4"
+                        columnsL="1"
+                        singleContainerFullSize="false">
+                        
+                        <f:title>
+                            <core:Title id="idParametersTitle" text="Parameters"/>
+                        </f:title>
+                        <f:content>
+                            <Label id="idSortOrderLabel" text="{i18n>sortOrderLabel}" required="true"/>
+                            <Input id="sortOrderInput" value="{viewModel>/sortOrder}" required="true" type="Number" width="300px" />
+                            
+                            <Label id="idCostGroupTypeLabel" text="{i18n>costGroupTypeLabel}" required="true"/>
+                            <Select 
+                                id="costGroupTypeSelect" 
+                                selectedKey="{viewModel>/costGroupType}" 
+                                items="{path: 'costGroupTypes>/', sorter: { path: 'value' }}"
+                                width="300px">
+                                                                                                                                <core:Item id="costGroupTypeItem" key="{costGroupTypes>key}" text="{costGroupTypes>value}" />
+                            </Select>
+                        </f:content>
+                    </f:SimpleForm>
                 </VBox>
-            </HBox>
+                
+                <Table
+                    id="circumstanceTable"
+                    inset="false"
+                    items="{
+                        path: 'costGroupCircumstances>/',
+                        sorter: {
+                            path: 'Circumstance'
+                        }
+                    }"
+                    class="sapUiMediumMarginTop"
+                    mode="MultiSelect">
+
+                    <headerToolbar>
+                        <Toolbar id="CircumstanceToolbar">
+                            <HBox id="idCircumstancesTitleHBox" alignItems="Center">
+                                <Button id="idLegendButton"
+                                    icon="sap-icon://legend"
+                                    tooltip="Show Legend"
+                                    press="onLegendPress"
+                                    type="Transparent" />
+                                <Title id="idAssignedCircumstancesTitle"
+                                    text="Assigned circumstances"
+                                    level="H4" />
+                            </HBox>
+                            <ToolbarSpacer id="idCircumstanceToolbarSpacer" />
+                            <Button id="idDeleteCircumstanceButton"
+                                icon="sap-icon://delete"
+                                tooltip="Delete Selected Circumstances"
+                                press="onDeleteCircumstance"
+                                type="Transparent" />
+                            <Button id="idAddCircumstanceButton"
+                                icon="sap-icon://add"
+                                tooltip="Add Circumstance"
+                                press="onAddCircumstance"
+                                type="Transparent" />
+                        </Toolbar>
+                    </headerToolbar>
+
+                    <columns>
+                        <Column id="circumstanceColumn" width="12rem">
+                            <Text id="circumstanceColumnTitle" text="Circumstance" />
+                        </Column>
+                        <Column id="costAllocationColumn" width="12rem">
+                            <Text id="costAllocationColumnTitle" text="Cost Allocation" />
+                        </Column>
+                        <Column id="taxShareColumn" width="12rem">
+                            <Text id="taxShareColumnTitle" text="Tax Share (0-100%)" />
+                        </Column>
+                        <Column id="validFromColumn" width="12rem">
+                            <Text id="validFromColumnTitle" text="Valid from" />
+                        </Column>
+                        <Column id="validToColumn" width="12rem">
+                            <Text id="validToColumnTitle" text="Valid to" />
+                        </Column>
+                        <Column id="statusColumn" minScreenWidth="Tablet" demandPopin="true">
+                            <Text id="statusColumnTitle" text="Status" />
+                        </Column>
+                    </columns>
+
+                    <items>
+                        <ColumnListItem id="circumstanceListItem" vAlign="Middle">
+                            <cells>
+                                <ComboBox
+                                    id="circumstanceCellComboBox"
+                                    selectedKey="{costGroupCircumstances>Circid}"
+                                    items="{path: 'circumstances>/'}"
+                                    editable="{viewModel>/editMode}">
+                                    <core:Item id="circumstanceCellItem" key="{circumstances>Circid}" text="{circumstances>CircDesc}" />
+                                </ComboBox>
+                                <ComboBox
+                                    id="costAllocationCellComboBox"
+                                    selectedKey="{costGroupCircumstances>CostAlloc}"
+                                    items="{path: 'costAllocations>/'}"
+                                    editable="{viewModel>/editMode}">
+                                    <core:Item id="costAllocationCellItem" key="{costAllocations>cost_alloc}" text="{costAllocations>cost_alloc_text}" />
+                                </ComboBox>
+                                <Input
+                                    id="taxShareCellInput"
+                                    value="{
+                                        path: 'costGroupCircumstances>TaxRate',
+                                        type: 'sap.ui.model.type.Float',
+                                        constraints: {
+                                            minimum: 0,
+                                            maximum: 100
+                                        }
+                                    }"
+                                    editable="{viewModel>/editMode}"/>
+                                <DatePicker
+                                    id="validFromCellDatePicker"
+                                    value="{
+                                        path: 'costGroupCircumstances>ValidFrom',
+                                        type: 'sap.ui.model.type.Date',
+                                        formatOptions: {
+                                            style: 'medium',
+                                            strictParsing: true
+                                        }
+                                    }"
+                                    editable="{viewModel>/editMode}"/>
+                                <DatePicker
+                                    id="validToCellDatePicker"
+                                    value="{
+                                        path: 'costGroupCircumstances>ValidTo',
+                                        type: 'sap.ui.model.type.Date',
+                                        formatOptions: {
+                                            style: 'medium',
+                                            strictParsing: true
+                                        }
+                                    }"
+                                    editable="{viewModel>/editMode}"/>
+                                <Text id="statusCellText" text="{costGroupCircumstances>Status}" />
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+            </VBox>
         </content>
+        
         <footer>
-            <Toolbar id="_IDGenToolbar"> 
-                <ToolbarSpacer id="_IDGenToolbarSpacer2" />
-                <ToolbarSpacer id="_IDGenToolbarSpacer1"/>
-                <Button id="_IDGenButton" text="{i18n>saveButton}" press="onSave"/>
-                <Button id="_IDGenButton1" text="{i18n>cancelButton}" press="onCancel"/>
-            </Toolbar>
+            <OverflowToolbar id="idOverflowToolbar">
+                <Button id="idLengthButton"
+                    icon="sap-icon://message-popup"
+                    text="{message>/messages/length}"
+                    visible="{= ${message>/messages/length} > 0 }"
+                    press="onMessagePopoverPress"
+                    type="Emphasized" />
+
+                <ToolbarSpacer id="idCostGroupDetailToolbarSpacer" />
+                
+                <Button id="idSaveCostGroupButton"
+                    text="{i18n>saveButton}"
+                    type="Emphasized"
+                    press="onSave" />
+                
+                <Button id="idCancelCostGroupButton"
+                    text="{i18n>cancelButton}"
+                    press="onCancel" />
+            </OverflowToolbar>
         </footer>
     </Page>
 </mvc:View>

@@ -1,66 +1,83 @@
 <mvc:View controllerName="dccs.ui5.costgroups.controller.CostGroups" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">
-	<Page id="costGroupsPage" title="{i18n>title}">
-		<content>
-			<!-- Filter Bar -->
-			<HBox id="filterBar" alignItems="End" class="sapUiMediumSmallBottom sapUiSmallMargin" wrap="Wrap" justifyContent="SpaceBetween">
-				<VBox id="filterBarContent" visible="true">
-					<Title id="attentionText" text="Attention: Text search is case sensitive!" class="sapUiSmallMarginBottom sapUiMediumSmallTop" />
-					<HBox id="filterInputs" class="sapUiTinyMarginEnd">
-						<VBox id="costGroupVBox" class="sapUiTinyMarginEnd">
-							<Label id="costGroupLabel" text="{i18n>columnCostGroup}" class="sapUiTinyMarginEnd"/>
-							<Input id="costGroupInput" width="150px" placeholder="{i18n>filterCostGroupPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
-						</VBox>
-						<VBox id="descVBox" class="sapUiTinyMarginEnd">
-							<Label id="descLabel" text="{i18n>columnDescription}" class="sapUiTinyMarginEnd" />
-							<Input id="descInput" width="150px" placeholder="{i18n>filterDescriptionPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
-						</VBox>
-					</HBox>
-				</VBox>
-				   <Button id="hideFilterBtn" text="{i18n>hideFilter}" press="onHideFilter" type="Transparent"/>
-				   
-			</HBox>
-			<!-- Table -->
-			<Table id="costGroupsTable" items="{/ZSCOSTGRP_CASet}" growing="true" growingThreshold="100">
-				<headerToolbar>
-					<Toolbar id="tableToolbar" class="sapUiSmallMarginTop">
+    <Page id="costGroupsPage" title="{i18n>title}">
+        <headerContent>
+            <Button
+                id="messagePopoverBtn"
+                icon="sap-icon://message-popup"
+                type="Emphasized"
+                text="{= ${message>/}.length }"
+                visible="{= ${message>/}.length > 0 }"
+                press="onMessagePopoverPress"
+                ariaHasPopup="Dialog"/>
+        </headerContent>
+        <content>
+            <HBox id="filterBar" alignItems="End" class="sapUiMediumSmallBottom sapUiSmallMargin" wrap="Wrap" justifyContent="SpaceBetween">
+                <VBox id="filterBarContent" visible="true">
+                    <Title id="attentionText" text="Attention: Text search is case sensitive!" class="sapUiSmallMarginBottom sapUiMediumSmallTop" />
+                    <HBox id="filterInputs" class="sapUiTinyMarginEnd">
+                        <VBox id="costGroupVBox" class="sapUiTinyMarginEnd">
+                            <Label id="costGroupLabel" text="{i18n>columnCostGroup}" class="sapUiTinyMarginEnd"/>
+                            <Input id="costGroupInput" width="150px" placeholder="{i18n>filterCostGroupPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
+                        </VBox>
+                        <VBox id="descVBox" class="sapUiTinyMarginEnd">
+                            <Label id="descLabel" text="{i18n>columnDescription}" class="sapUiTinyMarginEnd" />
+                            <Input id="descInput" width="150px" placeholder="{i18n>filterDescriptionPlaceholder}" liveChange="onFilterChange" class="sapUiTinyMarginEnd" />
+                        </VBox>
+                    </HBox>
+                </VBox>
+                <Button id="hideFilterBtn" text="{i18n>hideFilter}" press="onHideFilter" type="Transparent"/>
+            </HBox>
+
+            <Table id="costGroupsTable" items="{/ZSCOSTGRP_CASet}" mode="MultiSelect" selectionChange="onSelectionChange">
+                <headerToolbar>
+                    <Toolbar id="tableToolbar" class="sapUiSmallMarginTop">
                         <Button id="legendBtn" icon="sap-icon://legend" type="Transparent" tooltip="Legend" press="onLegendPress"/>
-						<Title id="entriesCountLabel" text="{= ${i18n>tableHeader} + ' (' + ${viewModel>/totalEntries} + ')' }" />
+                        <Title id="entriesCountLabel" text="{= ${i18n>tableHeader} + ' (' + ${viewModel>/totalEntries} + ')' }" />
                         <ToolbarSpacer id="_IDGenToolbarSpacer" />
+                        <Button
+                            id="groupDeleteBtn"
+                            icon="sap-icon://delete"
+                            tooltip="Delete Selected Cost Groups"
+                            press="onGroupDeletePress"
+                            type="Reject"
+                            enabled="{= ${viewModel>/selectedCount} > 0 }"
+                            class="sapUiTinyMarginEnd"
+                        />
                         <Button id="addCostGroupBtn" icon="sap-icon://add" press="onAddCostGroup"/>
-					</Toolbar>
-				</headerToolbar>
-				   <columns>
-					   <Column id="costGroupCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
-						   <Text id="costGroupColText" text="{i18n>columnCostGroup}" />
-					   </Column>
-					   <Column id="costGroupTypeTextCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
-						   <Text id="costGroupTypeTextColText" text="Cost Group Type Text" />
-					   </Column>
-					   <Column id="descCol" width="30%" minScreenWidth="Desktop" demandPopin="true">
-						   <Text id="descColText" text="{i18n>columnDescription}" />
-					   </Column>
-					   <Column id="lastChangedCol" width="15%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
-						   <Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
-					   </Column>
-					   <Column id="actionsCol" width="5%" minScreenWidth="Tablet" demandPopin="false" hAlign="Center">
-						   <Text id="actionsColText" text="Actions" />
-					   </Column>
-				   </columns>
-				<items> 
-					<ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
-						<cells>
-					     <ObjectIdentifier id="costGroupObjId" text="{CostGrpName}" />
-					     <Text id="costGroupTypeTextCell" text="{CostGrpTypeText}" />
-					     <Text id="descCellText" text="{CostGrpInfoTxt}" maxLines="2" />
-					     <Text id="lastChangedCellText"
-						     text="{ path: 'LastChanged', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
-						     tooltip="{changerdispname}" textAlign="End" />
-					     <Button id="deleteBtn" icon="sap-icon://delete" type="Transparent" 
-					             tooltip="Delete Cost Group" press="onDeleteCostGroup" />
-						</cells>
-					</ColumnListItem>
-				</items>
-			</Table>
-		</content>
-	</Page>
+                    </Toolbar>
+                </headerToolbar>
+                <columns>
+                    <Column id="costGroupCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
+                        <Text id="costGroupColText" text="{i18n>columnCostGroup}" />
+                    </Column>
+                    <Column id="costGroupTypeTextCol" width="25%" minScreenWidth="Tablet" demandPopin="true">
+                        <Text id="costGroupTypeTextColText" text="Cost Group Type Text" />
+                    </Column>
+                    <Column id="descCol" width="30%" minScreenWidth="Desktop" demandPopin="true">
+                        <Text id="descColText" text="{i18n>columnDescription}" />
+                    </Column>
+                    <Column id="lastChangedCol" width="15%" minScreenWidth="Tablet" demandPopin="true" hAlign="End">
+                        <Text id="lastChangedColText" text="{i18n>columnLastChanged}" />
+                    </Column>
+                    <Column id="actionsCol" width="5%" minScreenWidth="Tablet" demandPopin="false" hAlign="Center">
+                        <Text id="actionsColText" text="Actions" />
+                    </Column>
+                </columns>
+                <items>
+                    <ColumnListItem id="costGroupsRow" type="Navigation" press="onRowPress">
+                        <cells>
+                            <ObjectIdentifier id="costGroupObjId" text="{CostGrpName}" />
+                            <Text id="costGroupTypeTextCell" text="{parts: ['CostGrpTypeNo', 'costGroupTypes>/'], formatter: '.formatCostGroupType'}" />
+                            <Text id="descCellText" text="{CostGrpInfoTxt}" maxLines="2" />
+                            <Text id="lastChangedCellText"
+                                text="{ path: 'LastChanged', type: 'sap.ui.model.odata.type.DateTime', formatOptions: { style: 'short' } }"
+                                tooltip="{changerdispname}" textAlign="End" />
+                            <Button id="deleteBtn" icon="sap-icon://delete" type="Transparent" 
+                                tooltip="Delete Cost Group" press="onDeleteCostGroup" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+    </Page>
 </mvc:View>

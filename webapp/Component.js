@@ -29,6 +29,9 @@ sap.ui.define([
 
                 // set the device model
                 this.setModel(models.createDeviceModel(), "device");
+
+                // Register the message model
+                this.setModel(sap.ui.getCore().getMessageManager().getMessageModel(), "message");
             }
         });
     }

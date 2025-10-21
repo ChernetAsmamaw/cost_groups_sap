@@ -55,9 +55,10 @@
     "dependencies": {
       "minUI5Version": "1.71.33",
       "libs": {
-        "sap.m": {},
-        "sap.ui.core": {}
-      }
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.ui.layout": {}
+			}
     },
     "contentDensities": {
       "compact": true,
@@ -73,7 +74,10 @@
       "": {
         "dataSource": "mainService",
         "preload": true,
-        "settings": {}
+        "settings": {
+          "defaultOperationMode": "Client",
+          "defaultCountMode": "Inline"
+        }
       },
       "xdccsxcng_cgrty": {
         "dataSource": "cgrtyService",
