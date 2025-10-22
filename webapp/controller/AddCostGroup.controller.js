@@ -374,6 +374,31 @@ sap.ui.define([
             return !bValidationError;
         },
 
+        formatHighlight: function (sValidFrom, sValidTo) {
+            if (!sValidFrom) {
+                return "Error"; // No ValidFrom date is an error
+            }
+
+            const oCurrentDate = new Date();
+            // Set time to 00:00:00 for date-only comparison
+            oCurrentDate.setHours(0, 0, 0, 0);
+
+            const oValidFrom = new Date(sValidFrom);
+            let oValidTo = sValidTo ? new Date(sValidTo) : new Date(9999, 11, 31);
+
+            // Set time to 00:00:00 for date-only comparison
+            oValidFrom.setHours(0, 0, 0, 0);
+            oValidTo.setHours(0, 0, 0, 0);
+
+            if (oCurrentDate >= oValidFrom && oCurrentDate <= oValidTo) {
+                return "Success"; // Active
+            } else if (oCurrentDate < oValidFrom) {
+                return "Warning"; // Future
+            } else {
+                return "Error"; // Past
+            }
+        },
+
         onMessagePopoverPress: function (oEvent) {
             var oSourceControl = oEvent.getSource();
             this._getMessagePopover().then(function(oMessagePopover){

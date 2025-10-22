@@ -213,9 +213,6 @@ sap.ui.define([
         },
         
         onDeleteCostGroup: function (oEvent) {
-            // Stop the row navigation event from firing
-            oEvent.stopPropagation(); 
-            
             const oContext = oEvent.getSource().getBindingContext();
             const oData = oContext.getObject();
 
@@ -290,9 +287,11 @@ sap.ui.define([
         },
 
         onLegendPress: function (oEvent) {
+            const oButton = oEvent.getSource();
             const oView = this.getView();
             if (!this._pLegendPopover) {
                 this._pLegendPopover = Fragment.load({
+                    id: oView.getId(),
                     name: "dccs.ui5.costgroups.view.LegendPopover",
                     controller: this
                 }).then(function (oPopover) {
@@ -301,7 +300,7 @@ sap.ui.define([
                 });
             }
             this._pLegendPopover.then(function (oPopover) {
-                oPopover.openBy(oEvent.getSource());
+                oPopover.openBy(oButton);
             });
         },
         

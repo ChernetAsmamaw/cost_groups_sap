@@ -8,7 +8,7 @@
                 text="{= ${message>/}.length }"
                 visible="{= ${message>/}.length > 0 }"
                 press="onMessagePopoverPress"
-                ariaHasPopup="Dialog"/>
+                />
         </headerContent>
         <content>
             <HBox id="filterBar" alignItems="End" class="sapUiMediumSmallBottom sapUiSmallMargin" wrap="Wrap" justifyContent="SpaceBetween">
