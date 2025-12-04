@@ -11,36 +11,30 @@ sap.ui.define([
 
     return Controller.extend("dccs.ui5.costgroups.controller.CostGroups", {
 
-        onInit: function () {
+    onInit: function () {
             const oViewModel = new JSONModel({
                 totalEntries: 0,
-                busy: true, // Start busy until data is received
+                busy: true,
                 selectedCount: 0,
                 isFilterBarVisible: true
             });
             this.getView().setModel(oViewModel, "viewModel");
 
-            // Load helper data first. The table binding will wait for dataReceived.
+            // Load Cost Group Types into a separate model for lookups
             this._loadCostGroupTypes().catch((err) => {
-                // Display error only if type loading fails
                 MessageBox.error("Failed to load initial data (Cost Group Types). Please try again later.");
-                oViewModel.setProperty("/busy", false); // Unset busy on error
+                oViewModel.setProperty("/busy", false) // Unset busy on error
             });
 
             const oRouter = this.getOwnerComponent().getRouter();
-            // Note: RouteCostGroupDetail is typically handled by the detail controller, but keeping
-            // it here doesn't hurt if the router is defined this way.
             oRouter.getRoute("RouteCostGroupDetail").attachPatternMatched(this._onObjectMatched, this);
             
             this._filterDebounceTimer = null;
             this._bDataReceivedAttached = false;
         },
 
-        /**
-         * Use onAfterRendering to safely access view bindings and attach the dataReceived handler.
-         * This ensures the table only stops being busy after data has loaded.
-         */
-        onAfterRendering: function() {
+    // Attach dataReceived handler after rendering to manage busy state
+    onAfterRendering: function() {
             if (!this._bDataReceivedAttached) {
                 const oTable = this.byId("costGroupsTable");
                 // Ensure the table is present and has items binding
@@ -54,12 +48,9 @@ sap.ui.define([
             }
         },
 
-        /**
-         * Loads the Cost Group Type descriptions into a separate JSON model.
-         * FIX: Ensure keys are stored as trimmed strings.
-         * @returns {Promise} A promise that resolves when the data is loaded.
-         */
-        _loadCostGroupTypes: function() {
+
+    // Load Cost Group type descriptions into a JSON model for lookups
+    _loadCostGroupTypes: function() {
             return new Promise((resolve, reject) => {
                 const oCostGroupTypesModel = new JSONModel();
                 this.getView().setModel(oCostGroupTypesModel, "costGroupTypes");
@@ -89,14 +80,9 @@ sap.ui.define([
             });
         },
 
-        /**
-         * Formatter to convert Cost Group Type ID to Text.
-         * FIX: Ensure the input ID is converted to a trimmed string for a reliable lookup.
-         * The framework will re-evaluate this when the 'costGroupTypes' model is loaded.
-         * @param {string} sCostGrpTypeNo The ID of the cost group type (e.g., '01', '02').
-         * @returns {string} The corresponding text or the ID if not found.
-         */
-        formatCostGroupType: function(sCostGrpTypeNo) {
+
+    // Format Cost Group Type ID into its human readable text
+    formatCostGroupType: function(sCostGrpTypeNo) {
             if (sCostGrpTypeNo === undefined || sCostGrpTypeNo === null) return "";
             
             // Convert input to a string and trim spaces for a reliable lookup key
@@ -117,10 +103,9 @@ sap.ui.define([
             return oCostGroupTypes[sKey] || sCostGrpTypeNo; 
         },
         
-        /**
-         * Handles the data received event to update the entry count and unset busy state.
-         */
-        onDataReceived: function (oEvent) {
+
+    // Update view model when table data is received (update counts and busy)
+    onDataReceived: function (oEvent) {
             const oBinding = oEvent.getSource();
             // Use total length if available, otherwise fallback to current length.
             const iLength = oBinding.getLength ? oBinding.getLength() : oBinding.getCurrentContexts().length; 
@@ -129,10 +114,9 @@ sap.ui.define([
             oViewModel.setProperty("/busy", false); // Data is loaded, stop busy indicator
         },
         
-        /**
-         * Fully functional frontend filter with debouncing.
-         */
-        onFilterChange: function () {
+
+    // Handle filter input changes with debouncing and apply filters to table
+    onFilterChange: function () {
             clearTimeout(this._filterDebounceTimer);
 
             this._filterDebounceTimer = setTimeout(() => {
@@ -159,12 +143,14 @@ sap.ui.define([
             }, 300); // 300ms delay
         },
 
-        onSelectionChange: function (oEvent) {
+    // Update selected count in view model when table selection changes
+    onSelectionChange: function (oEvent) {
             const iSelectedCount = this.byId("costGroupsTable").getSelectedItems().length;
             this.getView().getModel("viewModel").setProperty("/selectedCount", iSelectedCount);
         },
 
-        onGroupDeletePress: function () {
+    // Confirm and initiate deletion of selected cost groups
+    onGroupDeletePress: function () {
             const aSelectedItems = this.byId("costGroupsTable").getSelectedItems();
             if (aSelectedItems.length === 0) {
                 MessageToast.show(this._getText("noItemsSelected"));
@@ -183,7 +169,8 @@ sap.ui.define([
             );
         },
 
-        _executeGroupDeletion: function (aSelectedItems) {
+    // Execute deletion requests for multiple selected groups and summarize results
+    _executeGroupDeletion: function (aSelectedItems) {
             const oModel = this.getView().getModel();
             const aPromises = [];
             this.getView().getModel("viewModel").setProperty("/busy", true);
@@ -212,7 +199,8 @@ sap.ui.define([
             });
         },
         
-        onDeleteCostGroup: function (oEvent) {
+    // Confirm and delete a single cost group row
+    onDeleteCostGroup: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext();
             const oData = oContext.getObject();
 
@@ -228,7 +216,8 @@ sap.ui.define([
             );
         },
 
-        _deleteCostGroup: function (sPath, sName) {
+    // Delete a cost group at given OData path and refresh table on success
+    _deleteCostGroup: function (sPath, sName) {
             const oModel = this.getView().getModel();
             this.getView().getModel("viewModel").setProperty("/busy", true);
 
@@ -247,7 +236,8 @@ sap.ui.define([
             });
         },
 
-        _refreshTableData: function() {
+    // Refresh table binding, clear selection and reset viewModel flags
+    _refreshTableData: function() {
             const oTable = this.byId("costGroupsTable");
             if (oTable && oTable.getBinding("items")) {
                 oTable.getBinding("items").refresh();
@@ -257,21 +247,21 @@ sap.ui.define([
             this.getView().getModel("viewModel").setProperty("/busy", false);
         },
 
+        // Parse or handle OData errors (stub - messages handled by message manager)
         _parseError: function (oError) {
-            // OData V2 models push their messages to the message manager automatically.
-            // Keeping this stub for consistency, though it's not needed for message handling.
         },
 
-        onHideFilter: function () {
+    // Toggle visibility of the filter bar and update button text
+    onHideFilter: function () {
             const oFilterBarContent = this.byId("filterBarContent");
             const bIsVisible = oFilterBarContent.getVisible();
             oFilterBarContent.setVisible(!bIsVisible);
             this.byId("hideFilterBtn").setText(bIsVisible ? this._getText("showFilter") : this._getText("hideFilter"));
         },
 
-        onRowPress: function (oEvent) {
+    // Navigate to the Cost Group detail route when a row is pressed
+    onRowPress: function (oEvent) {
             const oContext = oEvent.getSource().getBindingContext();
-            // Guard against navigating if a context is not available
             if (!oContext) {
                 MessageToast.show("Could not find the selected item context.");
                 return;
@@ -282,11 +272,13 @@ sap.ui.define([
             });
         },
 
+        // Navigate to the Add Cost Group route
         onAddCostGroup: function () {
             this.getOwnerComponent().getRouter().navTo("RouteAddCostGroup");
         },
 
-        onLegendPress: function (oEvent) {
+    // Open the legend popover (shared fragment)
+    onLegendPress: function (oEvent) {
             const oButton = oEvent.getSource();
             const oView = this.getView();
             if (!this._pLegendPopover) {
@@ -304,18 +296,18 @@ sap.ui.define([
             });
         },
         
+        // Retrieve translated text from i18n model with optional formatting arguments
         _getText: function (sKey, aArgs) {
-            // Check if the i18n model is available before attempting to get the bundle
             const oI18nModel = this.getOwnerComponent().getModel("i18n");
             if (!oI18nModel) {
-                return sKey; // Fallback to key if model is missing
+                return sKey;
             }
             return oI18nModel.getResourceBundle().getText(sKey, aArgs);
         },
 
-        // Stub for router pattern matched event (not strictly needed here but kept from original)
+        // Router pattern matched stub (kept for compatibility with routing setup)
         _onObjectMatched: function() {
-            // Placeholder: The detail page navigation is handled by onRowPress.
+            // The detail page navigation is handled by onRowPress.
         }
     });
 });

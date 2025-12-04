@@ -29,7 +29,7 @@
                     <f:layout>
                         <f:ResponsiveGridLayout 
                             id="idResponsiveGridLayout"
-                />
+                        />
                     </f:layout>
                     
                     <f:formContainers>
@@ -108,7 +108,7 @@
                                 selectedKey="{viewModel>/costGroupType}" 
                                 items="{path: 'costGroupTypes>/', sorter: { path: 'value' }}"
                                 width="300px">
-                                                                                                                                <core:Item id="costGroupTypeItem" key="{costGroupTypes>key}" text="{costGroupTypes>value}" />
+                                <core:Item id="costGroupTypeItem" key="{costGroupTypes>key}" text="{costGroupTypes>value}" />
                             </Select>
                         </f:content>
                     </f:SimpleForm>
@@ -124,9 +124,8 @@
                         }
                     }"
                     class="sapUiMediumMarginTop"
-                    mode="MultiSelect">
-
-                    <headerToolbar>
+                    mode="MultiSelect"
+                    selectionChange="onCircumstanceSelectionChange"> <headerToolbar>
                         <Toolbar id="CircumstanceToolbar">
                             <HBox id="idCircumstancesTitleHBox" alignItems="Center">
                                 <Button id="idLegendButton"
@@ -143,8 +142,8 @@
                                 icon="sap-icon://delete"
                                 tooltip="Delete Selected Circumstances"
                                 press="onDeleteCircumstance"
-                                type="Transparent" />
-                            <Button id="idAddCircumstanceButton"
+                                type="Transparent"
+                                enabled="{viewModel>/hasCircumstanceSelection}" /> <Button id="idAddCircumstanceButton"
                                 icon="sap-icon://add"
                                 tooltip="Add Circumstance"
                                 press="onAddCircumstance"
@@ -175,18 +174,21 @@
 
                     <items>
                         <ColumnListItem id="circumstanceListItem" vAlign="Middle" highlight="{parts: [{path: 'costGroupCircumstances>ValidFrom'}, {path: 'costGroupCircumstances>ValidTo'}], formatter: '.formatHighlight'}">
+                            <customData>
+                                <core:CustomData key="statusClass" value="{parts: [{path: 'costGroupCircumstances>ValidFrom'}, {path: 'costGroupCircumstances>ValidTo'}], formatter: '.formatRowClass'}" writeToDom="true" />
+                            </customData>
                             <cells>
                                 <ComboBox
                                     id="circumstanceCellComboBox"
                                     selectedKey="{costGroupCircumstances>Circid}"
-                                    items="{path: 'circumstances>/'}"
+                                    items="{path: 'circumstances>/', templateShareable: false}"
                                     editable="{viewModel>/editMode}">
                                     <core:Item id="circumstanceCellItem" key="{circumstances>Circid}" text="{circumstances>CircDesc}" />
                                 </ComboBox>
                                 <ComboBox
                                     id="costAllocationCellComboBox"
                                     selectedKey="{costGroupCircumstances>CostAlloc}"
-                                    items="{path: 'costAllocations>/'}"
+                                    items="{path: 'costAllocations>/', templateShareable: false}"
                                     editable="{viewModel>/editMode}">
                                     <core:Item id="costAllocationCellItem" key="{costAllocations>cost_alloc}" text="{costAllocations>cost_alloc_text}" />
                                 </ComboBox>
@@ -219,7 +221,8 @@
                                         type: 'sap.ui.model.type.Date',
                                         formatOptions: {
                                             style: 'medium',
-                                            strictParsing: true
+                                            strictParsing: true,
+                                            defaultValue: null
                                         }
                                     }"
                                     editable="{viewModel>/editMode}"/>

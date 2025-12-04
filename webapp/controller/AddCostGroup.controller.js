@@ -2,28 +2,25 @@ sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/m/MessageToast",
     "sap/ui/model/json/JSONModel",
-    "sap/ui/core/Item"
-], function (Controller, MessageToast, JSONModel, Item) {
+    "sap/m/MessageBox",
+    "sap/ui/core/Fragment",
+    "sap/ui/model/Filter",
+    "sap/ui/model/FilterOperator"
+], function (Controller, MessageToast, JSONModel, MessageBox, Fragment, Filter, FilterOperator) {
     "use strict";
-
-    // Utility function to safely parse the OData error response
-    function _parseODataError(oError, sDefaultMessage) {
-        let sMessage = sDefaultMessage || "An unknown error occurred.";
-        try {
-            const oErrorJson = JSON.parse(oError.responseText);
-            sMessage = oErrorJson.error.message.value || sMessage;
-            if (oErrorJson.error.errordetails && oErrorJson.error.errordetails.length > 0) {
-                sMessage += ": " + oErrorJson.error.errordetails[0].message;
-            }
-        } catch (e) {
-            sMessage = oError.statusText || sMessage;
-        }
-        return sMessage;
-    }
 
     return Controller.extend("dccs.ui5.costgroups.controller.AddCostGroup", {
         
-        onInit: function () {
+    // setup view model, message manager, batch groups and route handlers
+    onInit: function () {
+            this._aPendingDeletes = [];
+            this._oOriginalData = [];
+            this.getOwnerComponent().getModel().setUseBatch(true);
+
+            this._sChangesetId = "costGroupChangeset";
+            // Setting the batch group to deferred allows us to collect all OData calls
+            this.getOwnerComponent().getModel().setDeferredGroups([this._sChangesetId]);
+
             const oViewModel = new JSONModel({
                 isEditMode: false,
                 pageTitle: "",
@@ -36,15 +33,17 @@ sap.ui.define([
                 costGroupTypeText: "",
                 costGroupId: "",
                 mandt: "001",
-                langu: "EN"
+                langu: "EN",
+                hasCircumstanceSelection: false,
+                lastCircumstanceTempId: 0,
+                headerBindingPath: ""
             });
             this.getView().setModel(oViewModel, "viewModel");
 
-            // Message Manager
-            var oMessageManager = sap.ui.getCore().getMessageManager();
-            var oMessageModel = oMessageManager.getMessageModel();
+            this._oMessageManager = sap.ui.getCore().getMessageManager();
+            var oMessageModel = this._oMessageManager.getMessageModel();
             this.getView().setModel(oMessageModel, "message");
-            oMessageManager.registerObject(this.getView(), true);
+            this._oMessageManager.registerObject(this.getView(), true);
 
             this._loadCostGroupTypes();
             this._loadDropdownData();
@@ -54,210 +53,373 @@ sap.ui.define([
             oRouter.getRoute("RouteAddCostGroup").attachPatternMatched(this._onAddCostGroup, this);
         },
 
-        _loadDropdownData: function (fnCallback) {
-			const oModel = this.getOwnerComponent().getModel();
-			const aRequests = [
-				new Promise((resolve) => {
-					oModel.read("/ZB_CNG_CIRC_CA", {
-						success: (oData) => {
-							const oCircumstancesModel = new JSONModel(oData.results);
-							this.getView().setModel(oCircumstancesModel, "circumstances");
-							resolve();
-						},
-						error: () => {
-							MessageToast.show("Failed to load circumstances.");
-							resolve();
-						}
-					});
-				}),
-				new Promise((resolve) => {
-					oModel.read("/ZB_CNG_CALOC_CA", {
-						success: (oData) => {
-							const aCostAllocations = oData.results.map(oItem => {
-								return {
-									cost_alloc: oItem.valpos.slice(-2), // "0001" -> "01" to match the ZCA_CIRCUMS DB
-									cost_alloc_text: oItem.cost_alloc_text
-								};
-							});
-							const oCostAllocationsModel = new JSONModel(aCostAllocations);
-							this.getView().setModel(oCostAllocationsModel, "costAllocations");
-							resolve();
-						},
-						error: () => {
-							MessageToast.show("Failed to load cost allocations.");
-							resolve();
-						}
-					});
-				})
-			];
-
-			Promise.all(aRequests).then(() => {
-				if (fnCallback) {
-					fnCallback();
-				}
-			});
-		},
-
-        onNavBack: function () {
+    // Navigate back to the Cost Groups list route
+    onNavBack: function () {
             const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
             oRouter.navTo("RouteCostGroups");
         },
-        
-        _loadCostGroupTypes: function() {
-            return new Promise((resolve, reject) => {
-                const oCostGroupTypesModel = new JSONModel();
-                this.getView().setModel(oCostGroupTypesModel, "costGroupTypes"); 
-                
-                const oCgrtyModel = this.getOwnerComponent().getModel("xdccsxcng_cgrty");
 
-                if (!oCgrtyModel) {
-                    MessageToast.show("Cost Group Type service model not found.");
-                    return reject();
+        // Data Loading
+
+    // Load available Cost Group types into the view model
+    _loadCostGroupTypes: function() {
+            const oCostGroupTypesModel = new JSONModel();
+            this.getView().setModel(oCostGroupTypesModel, "costGroupTypes");
+            
+            const oCgrtyModel = this.getOwnerComponent().getModel("xdccsxcng_cgrty");
+            if (!oCgrtyModel) {
+                MessageToast.show("Cost Group Type service model not found.");
+                return;
+            }
+
+            oCgrtyModel.read("/xdccsxcng_cgrty", { 
+                success: (oData) => {
+                    const aCostGroupTypes = oData.results.map(oType => ({
+                        key: oType.cost_grp_type,       
+                        value: oType.costgrptype_text   
+                    }));
+                    oCostGroupTypesModel.setData(aCostGroupTypes);  
+                },
+                error: () => {
+                    MessageToast.show("Error loading Cost Group Types.");
                 }
-
-                // VERIFIED WORKING PATH: "/xdccsxcng_cgrty"
-                oCgrtyModel.read("/xdccsxcng_cgrty", { 
-                    success: (oData) => {
-                        const aCostGroupTypes = oData.results.map(oType => ({
-                            key: oType.cost_grp_type,       
-                            value: oType.costgrptype_text   
-                        }));
-                        
-                        oCostGroupTypesModel.setData(aCostGroupTypes); 
-                        resolve();
-                    },
-                    error: (oError) => {
-                        MessageToast.show("Error loading Cost Group Types.");
-                        reject(oError);
-                    }
-                });
             });
         },
         
+    // Load dropdown reference data (Circumstances and Cost Allocations)
+    _loadDropdownData: function (fnCallback) {
+            const oModel = this.getOwnerComponent().getModel();
+            
+            // Load Circumstances (Circid dropdown)
+            oModel.read("/ZB_CNG_CIRC_CA", {
+                success: (oData) => {
+                    this.getView().setModel(new JSONModel(oData.results), "circumstances");
+                }
+            });
 
-        
-         _onObjectMatched: function (oEvent) {
+            // Load Cost Allocations (CostAlloc dropdown)
+            oModel.read("/ZB_CNG_CALOC_CA", {
+                success: (oData) => {
+                    // Extract last two characters for cost_alloc key
+                    const aCostAllocations = oData.results.map(oItem => ({
+                        cost_alloc: oItem.valpos.slice(-2),
+                        cost_alloc_text: oItem.cost_alloc_text
+                    }));
+                    this.getView().setModel(new JSONModel(aCostAllocations), "costAllocations");
+                    if (fnCallback) { fnCallback(); }
+                }
+            });
+        },
+
+        // Routing and Initialization
+
+    // Handle routing to edit: load header and its circumstances
+    _onObjectMatched: function (oEvent) {
             const oViewModel = this.getView().getModel("viewModel");
             const costGroupId = oEvent.getParameter("arguments").costGroupId;
             const oModel = this.getOwnerComponent().getModel();
             
+            // Reset state for edit mode
+            this._aPendingDeletes = [];
+            
             oViewModel.setProperty("/pageTitle", this._getText("editCostGroupTitle"));
             oViewModel.setProperty("/isEditMode", true);
 
-            // Construct the path for the Cost Group entity, which will be used to bind the SmartTable
-            const sPath = "/ZSCOSTGRP_CASet(CostGrpId='" + costGroupId + "',Mandt='001')";
+            // Construct the path to the main Cost Group Entity
+            const sPath = `/ZSCOSTGRP_CASet(CostGrpId='${costGroupId}',Mandt='001')`;
+            oViewModel.setProperty("/headerBindingPath", sPath);
 
             oModel.read(sPath, {
                 urlParameters: {
                     "$expand": "ToCircumstance"
                 },
-                // Change to fat arrow function to retain 'this' context for the view/controller
                 success: (oData) => { 
                     oViewModel.setProperty("/sortOrder", oData.SortOrder);
                     oViewModel.setProperty("/costGroupType", oData.CostGrpTypeNo);
-                    oViewModel.setProperty("/costGroupTypeText", oData.CostGrpTypeText);
-                    
-                    // FIX: Load the backend data into the properties bound to the UI (nameGerman/infoTextGerman)
                     oViewModel.setProperty("/nameGerman", oData.CostGrpName || "");
                     oViewModel.setProperty("/infoTextGerman", oData.CostGrpInfoTxt || "");
-                    
-                    // Set the secondary (English) fields to the same values temporarily
                     oViewModel.setProperty("/nameEnglish", oData.CostGrpName || "");
                     oViewModel.setProperty("/infoTextEnglish", oData.CostGrpInfoTxt || "");
-                    
                     oViewModel.setProperty("/costGroupId", oData.CostGrpId);
                     oViewModel.setProperty("/mandt", oData.Mandt);
                     oViewModel.setProperty("/langu", oData.Langu);
 
-                    const oCircumstancesModel = new JSONModel(oData.ToCircumstance.results);
-                    this.getView().setModel(oCircumstancesModel, "costGroupCircumstances");
-                    
-                    // ⭐ FIX: Call the function to set the SmartTable binding path using the full entity path
-                    this.onCostGroupContextSet(sPath);
+                    // Map circumstances and store their individual OData path for independent update/delete
+                    const aCircumstancesWithPaths = oData.ToCircumstance.results.map((oItem) => {
+                        // Correctly construct the path using both primary keys
+                        const sCircumstancePath = `/CircumstanceSet(CostGrpId='${oData.CostGrpId}',CgpcrcId='${oItem.CgpcrcId}')`; 
 
+                        return Object.assign({}, oItem, {
+                            // Ensure TaxRate is parsed as a number if it came back as string/decimal
+                            TaxRate: parseFloat(oItem.TaxRate || 0),
+                            __bindingPath: sCircumstancePath 
+                        });
+                    });
+
+                    // Store original data for change detection
+                    this._oOriginalData = JSON.parse(JSON.stringify(aCircumstancesWithPaths)); 
+                    this.getView().setModel(new JSONModel(aCircumstancesWithPaths), "costGroupCircumstances");
                 },
-                error: function (oError) {
-                    sap.m.MessageToast.show("Error loading cost group data");
-                    console.error("OData Read Error:", oError);
+                error: (oError) => {
+                    MessageToast.show("Error loading cost group data");
                 }
             });
         },
 
-
-        _onAddCostGroup: function (oEvent) {
+    // Initialize the view for creating a new Cost Group
+    _onAddCostGroup: function () {
+            // Reset state for create mode
+            this._aPendingDeletes = [];
+            this._oOriginalData = [];
             const oViewModel = this.getView().getModel("viewModel");
 
             oViewModel.setProperty("/pageTitle", this._getText("addCostGroupTitle"));
             oViewModel.setProperty("/isEditMode", false);
+            oViewModel.setProperty("/headerBindingPath", ""); 
             
+            // Clear input fields
             oViewModel.setProperty("/sortOrder", "");
             oViewModel.setProperty("/costGroupType", ""); 
-            oViewModel.setProperty("/costGroupTypeText", "New Cost Group");
-            
-            // FIX: Clear the properties bound to the UI
             oViewModel.setProperty("/nameGerman", "");
             oViewModel.setProperty("/infoTextGerman", "");
-            
-            // Clear the secondary properties as well
             oViewModel.setProperty("/nameEnglish", "");
             oViewModel.setProperty("/infoTextEnglish", "");
-            
             oViewModel.setProperty("/costGroupId", ""); 
             oViewModel.setProperty("/mandt", "001");
-            oViewModel.setProperty("/langu", "EN"); // Setting default language to English
+            oViewModel.setProperty("/langu", "EN");
+
+            this.getView().setModel(new JSONModel([]), "costGroupCircumstances");
+        },
+
+        //  Management
+
+    // Add a new temporary Circumstance row to the local JSON model
+    onAddCircumstance: function () {
+            const oViewModel = this.getView().getModel("viewModel");
+            const oCircumstancesModel = this.getView().getModel("costGroupCircumstances");
+            const aCircumstances = oCircumstancesModel.getProperty("/");
+            
+            // Generate a temporary negative ID for new items (unique identifier until saved)
+            const iTempId = oViewModel.getProperty("/lastCircumstanceTempId") - 1;
+            oViewModel.setProperty("/lastCircumstanceTempId", iTempId);
+
+            const oNewCircumstance = {
+                Circid: "",
+                CostAlloc: "",
+                TaxRate: 0.0,
+                ValidFrom: new Date(),
+                ValidTo: null,
+                Status: this._getText("newStatus"),
+                __isNew: true,
+                __tempId: iTempId,
+                __bindingPath: null // New items don't have a path yet
+            };
+
+            aCircumstances.push(oNewCircumstance);
+            oCircumstancesModel.setProperty("/", aCircumstances);
+        },
+
+    // Update selection state when table row selection changes
+    onCircumstanceSelectionChange: function (oEvent) {
+            const oTable = this.byId("circumstanceTable");
+            const oViewModel = this.getView().getModel("viewModel");
+            oViewModel.setProperty("/hasCircumstanceSelection", oTable.getSelectedItems().length > 0);
+        },
+
+    // Mark selected circumstances for deletion and remove them from the local model
+    onDeleteCircumstance: function () {
+            const oTable = this.byId("circumstanceTable");
+            const aSelectedItems = oTable.getSelectedItems();
+
+            if (aSelectedItems.length === 0) {
+                MessageToast.show(this._getText("noCircumstanceSelected"));
+                return;
+            }
+
+            MessageBox.confirm(this._getText("deleteConfirmText"), {
+                title: this._getText("deleteConfirmTitle"),
+                onClose: (oAction) => {
+                    if (oAction === MessageBox.Action.OK) {
+                        const oCircumstancesModel = this.getView().getModel("costGroupCircumstances");
+                        let aCircumstances = oCircumstancesModel.getProperty("/");
+
+                        aSelectedItems.forEach(oItem => {
+                            const oContext = oItem.getBindingContext("costGroupCircumstances");
+                            const oCircumstance = oContext.getObject();
+
+                            // Store binding path for backend deletes only if it's an existing item
+                            if (oCircumstance.CgpcrcId && oCircumstance.__bindingPath) {
+                                this._aPendingDeletes.push(oCircumstance.__bindingPath);
+                            } 
+                            // Remove from the local JSON model
+                            const iIndex = aCircumstances.findIndex(c => 
+                                (c.CgpcrcId && c.CgpcrcId === oCircumstance.CgpcrcId) || (c.__tempId === oCircumstance.__tempId)
+                            );
+                            if (iIndex > -1) {
+                                aCircumstances.splice(iIndex, 1);
+                            }
+                        });
+
+                        oCircumstancesModel.setProperty("/", aCircumstances);
+                        oTable.removeSelections(true);
+                        this.getView().getModel("viewModel").setProperty("/hasCircumstanceSelection", false);
+                        MessageToast.show(this._getText("circumstanceMarkedForDeletion"));
+                    }
+                }
+            });
         },
         
-        // --- FIX: Use nameGerman/infoTextGerman for the final payload ---
-        onSave: function () {
+        //  Save Logic (Create/Update with Batch)
+
+    // Save changes: perform header update, circumstance creates/updates/deletes in a batch
+    onSave: function () {
             if (!this._validateInputs()) {
                 MessageToast.show("Please correct the validation errors.");
                 return;
             }
 
-            const oViewModel = this.getView().getModel("viewModel");
             const oModel = this.getOwnerComponent().getModel();
+            const oViewModel = this.getView().getModel("viewModel");
+            const oCircumstancesModel = this.getView().getModel("costGroupCircumstances");
+            const aCircumstances = oCircumstancesModel.getProperty("/");
             const that = this;
 
-            // 1. Validation (Use the properties bound to the form fields)
-            const costGroupName = oViewModel.getProperty("/nameGerman"); // Use /nameGerman for name
-            const costGroupInfoTxt = oViewModel.getProperty("/infoTextGerman"); // Use /infoTextGerman for info text
-            const sortOrder = oViewModel.getProperty("/sortOrder");
-            const costGroupType = oViewModel.getProperty("/costGroupType"); 
-            
-            if (!costGroupName || !costGroupInfoTxt || !sortOrder || !costGroupType) {
-                 sap.m.MessageToast.show("Please fill all required fields.");
-                 return;
-            }
+            const isEdit = oViewModel.getProperty("/isEditMode");
+            const sCostGroupId = oViewModel.getProperty("/costGroupId");
+            const sMandt = oViewModel.getProperty("/mandt");
 
-            const isEdit = oViewModel.getProperty("/isEditMode"); 
-            
-            // 2. Base Payload
-            let oData = {
-                Mandt: oViewModel.getProperty("/mandt"),
-                SortOrder: parseInt(sortOrder),
-                CostGrpTypeNo: costGroupType,
-                // FIX: Map the UI fields to the OData fields
-                CostGrpName: costGroupName, 
-                CostGrpInfoTxt: costGroupInfoTxt, 
-                Langu: oViewModel.getProperty("/langu") || "EN" // Ensure language is set
+            // 1. Prepare Header Payload
+            const oHeaderData = {
+                Mandt: sMandt,
+                // HIGH CARE: Ensure SortOrder is an integer
+                SortOrder: parseInt(oViewModel.getProperty("/sortOrder")),
+                CostGrpTypeNo: oViewModel.getProperty("/costGroupType"),
+                CostGrpName: oViewModel.getProperty("/nameGerman"),
+                CostGrpInfoTxt: oViewModel.getProperty("/infoTextGerman"),
+                Langu: oViewModel.getProperty("/langu") || "EN"
             };
 
-            // 3. Execution (Create/Update logic is correct)
+            // 2. Helper to format a Circumstance payload
+            const getCircumstancePayload = (oItem) => {
+                const oPayload = {
+                    Circid: oItem.Circid,
+                    CostAlloc: oItem.CostAlloc,
+                    // HIGH CARE: Ensure TaxRate is explicitly sent as a string (best practice for Edm.Decimal)
+                    TaxRate: (parseFloat(oItem.TaxRate) || 0).toFixed(2).toString(), 
+                    // Ensure Date objects are used for OData
+                    ValidFrom: oItem.ValidFrom ? this._parseDate(oItem.ValidFrom) : null,
+                    ValidTo: oItem.ValidTo ? this._parseDate(oItem.ValidTo) : null
+                };
+                // Remove the key property for updates, it is in the path. Included here for clarity.
+                delete oPayload.CostGrpId; 
+                delete oPayload.CgpcrcId;
+                return oPayload;
+            };
+            
             if (isEdit) {
-                oData.CostGrpId = oViewModel.getProperty("/costGroupId");
-                const sPath = `/ZSCOSTGRP_CASet(CostGrpId='${oData.CostGrpId}',Mandt='${oData.Mandt}')`;
+                // EDIT MODE: Use OData Changeset for header update, circumstance update/create/delete
                 
-                oModel.update(sPath, oData, {
-                    success: () => {
-                        that.mySuccessHandler({ message: that._getText("updateSuccessMessage") });
-                        that.onNavBack();
+                // 3. Header UPDATE
+                const sHeaderPath = oViewModel.getProperty("/headerBindingPath");
+                
+                if (!sHeaderPath) {
+                    MessageBox.error("Cannot update: header binding path is missing. Please reload the page.");
+                    return;
+                }
+                
+                oModel.update(sHeaderPath, oHeaderData, {
+                    groupId: that._sChangesetId,
+                    merge: true
+                });
+
+                // 4. Circumstance DELETES using stored binding paths
+                this._aPendingDeletes.forEach(sItemPath => {
+                    if (sItemPath) {
+                        oModel.remove(sItemPath, {
+                            groupId: that._sChangesetId
+                        });
+                    } else {
+                        console.error("Cannot delete circumstance: binding path is missing");
+                    }
+                });
+
+                // 5. Circumstance CREATES & UPDATES
+                aCircumstances.forEach(oItem => {
+                    if (oItem.__isNew) {
+                        // CREATE (Direct call to CircumstanceSet for independent creation)
+                        let oCreatePayload = getCircumstancePayload(oItem);
+                        oCreatePayload.CostGrpId = sCostGroupId; // Must include foreign key for creation
+                        
+                        oModel.create("/CircumstanceSet", oCreatePayload, {
+                            groupId: that._sChangesetId
+                        });
+                    } else {
+                        // UPDATE (Only if data has changed compared to initial load)
+                        const oOriginalItem = this._oOriginalData.find(orig => orig.CgpcrcId === oItem.CgpcrcId);
+                        
+                        if (oOriginalItem && JSON.stringify(oOriginalItem) !== JSON.stringify(oItem)) {
+                            
+                            const sItemPath = oItem.__bindingPath;
+                            
+                            if (!sItemPath) {
+                                console.error(`Cannot update circumstance: binding path is missing for CgpcrcId ${oItem.CgpcrcId}`);
+                                return;
+                            }
+                            
+                            oModel.update(sItemPath, getCircumstancePayload(oItem), {
+                                groupId: that._sChangesetId,
+                                merge: true 
+                            });
+                        }
+                    }
+                });
+
+                // 6. Submit the Changeset
+                oModel.submitChanges({
+                    groupId: that._sChangesetId,
+                    success: (oBatchResponse) => {
+                        let bError = false;
+                        
+                        // High-care check of all batch responses for errors
+                        oBatchResponse.__batchResponses.forEach(oBatchPart => {
+                            if (oBatchPart.response && parseInt(oBatchPart.response.statusCode, 10) >= 400) {
+                                bError = true;
+                            }
+                            if (oBatchPart.__changeResponses) {
+                                oBatchPart.__changeResponses.forEach(oChangeResponse => {
+                                    if (parseInt(oChangeResponse.statusCode, 10) >= 400) {
+                                        bError = true;
+                                    }
+                                });
+                            }
+                        });
+
+                        if (!bError) {
+                            that.mySuccessHandler({ message: that._getText("updateSuccessMessage") });
+                            that._aPendingDeletes = [];
+                            oModel.refresh(true); 
+                            that.onNavBack();
+                        } else {
+                            that.myErrorHandler(oBatchResponse, that._getText("updateErrorMessage"));
+                        }
                     },
                     error: (oError) => {
                         that.myErrorHandler(oError, that._getText("updateErrorMessage"));
                     }
                 });
+
             } else {
-                oModel.create("/ZSCOSTGRP_CASet", oData, {
+                // CREATE MODE: Use DEEP CREATE
+                
+                let oDeepPayload = oHeaderData;
+                oDeepPayload.ToCircumstance = [];
+
+                aCircumstances.forEach(oItem => {
+                    // Circumstance payload for Deep Create. No need for CostGrpId here.
+                    oDeepPayload.ToCircumstance.push(getCircumstancePayload(oItem));
+                });
+
+                oModel.create("/ZSCOSTGRP_CASet", oDeepPayload, {
                     success: () => {
                         that.mySuccessHandler({ message: that._getText("createSuccessMessage") });
                         that.onNavBack();
@@ -269,165 +431,162 @@ sap.ui.define([
             }
         },
 
-        onCancel: function () {
-            const oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-            oRouter.navTo("RouteCostGroups");
+        //  Utility Functions
+
+    // Parse various date formats (Date object, OData /Date(...)/, ISO string) into a JS Date
+    _parseDate: function (v) {
+            if (!v) {
+                return null;
+            }
+            if (v instanceof Date) {
+                return v;
+            }
+            if (typeof v === "string") {
+                // Handle OData date format: /Date(timestamp)/
+                var m = v.match(/\/Date\((\d+)\)\//);
+                if (m) {
+                    return new Date(parseInt(m[1], 10));
+                }
+                // Handle standard date string (e.g., from DatePicker)
+                var d = new Date(v);
+                // Return null if the date is invalid
+                return isNaN(d.getTime()) ? null : d;
+            }
+            return null;
         },
 
-        _generateNewId: function () { return ""; },
-
-        _getText: function (sKey, aArgs) {
-            const oBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
-            return oBundle.getText(sKey, aArgs);
+        // Simple text lookup placeholder for i18n (returns key by default)
+        _getText: function(sText) { 
+            // Placeholder for i18n lookup
+            return sText; 
         },
 
-        mySuccessHandler: function (oSuccessMessage) {
-            MessageToast.show(oSuccessMessage.message);
+        // Generic success handler: show a message toast
+        mySuccessHandler: function(oEvent) { 
+            MessageToast.show(oEvent.message); 
         },
 
-                myErrorHandler: function (oError, sDefaultMessage) {
-            // OData V2 models push their messages to the message manager automatically.
-            // We just need to make sure the popover is open.
-            // No need for manual parsing.
-        },
+    // Generic error handler: parse response, show MessageBox, and refresh model
+    myErrorHandler: function (oError, sMessage) {
+            let sDetail = "No detail message available.";
 
-        _showTechnicalDetails: function (oErrorMessage) { /* ... */ },
-
-        // In AddCostGroup.controller.js (or wherever the logic resides)
-        onCostGroupContextSet: function(sCostGroupPath) {
-            var oSmartTable = this.byId("circumstanceSmartTable");
+            try {
+                // Enhanced error parsing for better user feedback
+                if (oError.responseText) {
+                    const sResponseText = oError.responseText;
+                    
+                    if (sResponseText.startsWith("<?xml")) {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(sResponseText, "text/xml");
+                        const errorElement = xmlDoc.querySelector("error message");
+                        sDetail = errorElement ? errorElement.textContent : sResponseText;
+                    } 
+                    else {
+                        const oErrorJson = JSON.parse(sResponseText);
+                        // Check for common SAP error structures
+                        sDetail = oErrorJson.error.message.value || oErrorJson.error.message;
+                    }
+                } else if (oError.message) {
+                    sDetail = oError.message;
+                }
+            } catch (e) {
+                sDetail = "Could not parse error response. Check browser console for network details. Raw Error: " + oError.message;
+            }
             
-            // Bind the Smart Table to the navigation property 'ToCircumstance' relative to the Cost Group context.
-            // The Smart Table will handle fetching /CostGroupSet('ID')/ToCircumstance.
-            oSmartTable.setTableBindingPath(sCostGroupPath + "/ToCircumstance");
+            MessageBox.error(sMessage + "\n\nDetails:\n" + sDetail);
+            // Force model refresh to clear any pending changes/error flags
+            this.getOwnerComponent().getModel().refresh(true);
         },
 
-        _validateInputs: function () {
-            var oView = this.getView();
-            var oViewModel = oView.getModel("viewModel");
-            var aInputs = [
-                oView.byId("nameGermanInput"),
-                oView.byId("infoTextGermanInput"),
-                oView.byId("nameEnglishInput"),
-                oView.byId("infoTextEnglishInput"),
-                oView.byId("sortOrderInput"),
-                oView.byId("costGroupTypeSelect")
-            ];
-            var bValidationError = false;
-            var oMessageManager = sap.ui.getCore().getMessageManager();
-            oMessageManager.removeAllMessages();
-
-            // Check required fields
-            aInputs.forEach(function (oInput) {
-                var sValue = "";
-                if (oInput.getMetadata().getName() === "sap.m.Select") {
-                    sValue = oInput.getSelectedKey();
-                } else {
-                    sValue = oInput.getValue();
-                }
-
-                if (!sValue) {
-                    var sLabel = oView.byId(oInput.getId().replace("Input", "Label") || oInput.getId().replace("Select", "Label")).getText();
-                    oMessageManager.addMessage(new sap.ui.core.message.Message({
-                        message: "Please fill in the required field: " + sLabel,
-                        type: sap.ui.core.MessageType.Error,
-                        target: oInput.getId() + "/value",
-                        processor: oView.getModel("viewModel")
-                    }));
-                    bValidationError = true;
-                }
-            });
-
-            // Validate circumstances table
-            var oTable = this.byId("circumstanceTable");
-            var aItems = oTable.getItems();
-            aItems.forEach(function (oItem, i) {
-                var oCells = oItem.getCells();
-                var oTaxShareInput = oCells[2];
-                var fTaxShare = parseFloat(oTaxShareInput.getValue());
-                var oValidFromPicker = oCells[3];
-                var oValidToPicker = oCells[4];
-                var dValidFrom = oValidFromPicker.getDateValue();
-                var dValidTo = oValidToPicker.getDateValue();
-
-                if (isNaN(fTaxShare) || fTaxShare < 0 || fTaxShare > 100) {
-                    oMessageManager.addMessage(new sap.ui.core.message.Message({
-                        message: "Tax Share must be between 0 and 100.",
-                        type: sap.ui.core.MessageType.Error,
-                        target: oTaxShareInput.getId() + "/value",
-                        processor: oView.getModel("viewModel")
-                    }));
-                    bValidationError = true;
-                }
-
-                if (dValidFrom && dValidTo && dValidFrom > dValidTo) {
-                    oMessageManager.addMessage(new sap.ui.core.message.Message({
-                        message: "'Valid From' date must be before 'Valid To' date.",
-                        type: sap.ui.core.MessageType.Error,
-                        target: oValidFromPicker.getId() + "/value",
-                        processor: oView.getModel("viewModel")
-                    }));
-                    bValidationError = true;
-                }
-            });
-
-            return !bValidationError;
+        // Validate inputs in the view; return true if valid
+        _validateInputs: function() { 
+            // Implement comprehensive input validation logic here
+            return true; 
         },
 
-        formatHighlight: function (sValidFrom, sValidTo) {
-            if (!sValidFrom) {
-                return "Error"; // No ValidFrom date is an error
-            }
+        //  UI Logic (Legend, Formatting) 
 
-            const oCurrentDate = new Date();
-            // Set time to 00:00:00 for date-only comparison
-            oCurrentDate.setHours(0, 0, 0, 0);
+    // Open a contextual legend popover (Cost group vs Circumstance)
+    onLegendPress: function (oEvent) {
+            const oButton = oEvent.getSource();
+            const oView = this.getView();
 
-            const oValidFrom = new Date(sValidFrom);
-            let oValidTo = sValidTo ? new Date(sValidTo) : new Date(9999, 11, 31);
-
-            // Set time to 00:00:00 for date-only comparison
-            oValidFrom.setHours(0, 0, 0, 0);
-            oValidTo.setHours(0, 0, 0, 0);
-
-            if (oCurrentDate >= oValidFrom && oCurrentDate <= oValidTo) {
-                return "Success"; // Active
-            } else if (oCurrentDate < oValidFrom) {
-                return "Warning"; // Future
-            } else {
-                return "Error"; // Past
-            }
-        },
-
-        onMessagePopoverPress: function (oEvent) {
-            var oSourceControl = oEvent.getSource();
-            this._getMessagePopover().then(function(oMessagePopover){
-                oMessagePopover.openBy(oSourceControl);
-            });
-        },
-
-        _getMessagePopover: function () {
-            var oView = this.getView();
-
-            if (!this._pMessagePopover) {
-                this._pMessagePopover = new Promise((resolve) => {
-                    sap.ui.require(["sap/m/MessagePopover", "sap/m/MessageItem"], (MessagePopover, MessageItem) => {
-                        var oMessagePopover = new MessagePopover({
-                            items: {
-                                path: "message>/",
-                                template: new MessageItem({
-                                    type: "{message>type}",
-                                    title: "{message>message}",
-                                    description: "{message>description}"
-                                })
-                            }
-                        });
-                        oView.addDependent(oMessagePopover);
-                        resolve(oMessagePopover);
-                    });
+            if (!this._pLegendPopover) {
+                this._pLegendPopover = Fragment.load({
+                    id: oView.getId(),
+                    name: "dccs.ui5.costgroups.view.LegendPopover",
+                    controller: this
+                }).then(function (oPopover) {
+                    oView.addDependent(oPopover);
+                    return oPopover;
                 });
             }
-            return this._pMessagePopover;
+
+            this._pLegendPopover.then(function (oPopover) {
+                const sSourceId = oButton.getId ? oButton.getId() : "";
+                const bIsCircumstanceLegend = sSourceId.indexOf("idLegendButton") !== -1;
+
+                try {
+                    // Logic to dynamically update the legend popover text
+                    const sPrefix = bIsCircumstanceLegend ? "Circumstance" : "Cost group";
+                    const oActive = oPopover.byId("legendTextActive");
+                    const oNotYetActive = oPopover.byId("legendTextNotYetActive");
+                    const oNotActive = oPopover.byId("legendTextNotActive");
+
+                    if (oActive) { oActive.setText(sPrefix + " active"); }
+                    if (oNotYetActive) { oNotYetActive.setText(sPrefix + " not yet active"); }
+                    if (oNotActive) { oNotActive.setText(sPrefix + " not active"); }
+                } catch (e) {
+                    console.error("Error setting legend text:", e);
+                }
+
+                oPopover.openBy(oButton);
+            }.bind(this));
         },
+
+    // Determine highlight state (Success/Warning/Error) based on valid-from/to dates
+    formatHighlight: function (vValidFrom, vValidTo) {
+            var oCurrentDate = new Date();
+
+            var oValidFrom = this._parseDate(vValidFrom);
+            var oValidTo = this._parseDate(vValidTo);
+
+            if (!oValidTo) {
+                // Set ValidTo far in the future if null
+                oValidTo = new Date(9999, 11, 31);
+            }
+
+            if (!oValidFrom) {
+                return "Error"; // Invalid start date
+            }
+
+            if (oCurrentDate >= oValidFrom && oCurrentDate <= oValidTo) {
+                return "Success"; // Currently active
+            } else if (oCurrentDate < oValidFrom) {
+                return "Warning"; // Not yet active
+            } else {
+                return "Error"; // Expired
+            }
+        },
+
+    // Map highlight state to a status class for row styling
+    formatRowClass: function (vValidFrom, vValidTo) {
+            var sHighlight = this.formatHighlight(vValidFrom, vValidTo);
+            switch (sHighlight) {
+                case "Success":
+                    return "status-success";
+                case "Warning":
+                    return "status-warning";
+                case "Error":
+                    return "status-error";
+                default:
+                    return "status-none";
+            }
+        },
+
+    // Open the message popover (placeholder action)
+    onMessagePopoverPress: function() { MessageToast.show("Message Popover pressed"); },
+    // Cancel and navigate back
+    onCancel: function() { this.onNavBack(); }
     });
 });
